@@ -22,7 +22,7 @@
           </el-button>
         </el-col>
         <el-col :span="6">
-          <el-button type="info" @click="handleExportExemptionList">
+          <el-button type="info" @click="exportExemptionList" :loading="exportLoading">
             <el-icon><Download /></el-icon>
             导出名单
           </el-button>
@@ -52,7 +52,7 @@
             v-model="searchForm.dateRange"
             type="daterange"
             range-separator="至"
-            start-placeholder="开始日期"
+            start-placehold,r="开始日期"
             end-placeholder="结束日期"
           />
         </el-form-item>
@@ -110,7 +110,7 @@
             >
               审核
             </el-button>
-            <el-button size="small" type="warning" @click="handleDownloadMaterials(scope.row)">
+            <el-button size="small" type="warning" @click="downloadMaterials(scope.row)">
               材料
             </el-button>
           </template>
@@ -440,7 +440,7 @@
               <el-input v-model="applyForm.studentId" placeholder="请输入考籍号" clearable />
             </el-col>
             <el-col :span="8">
-              <el-button type="primary" @click="handleSearchStudent" :loading="searching">
+              <el-button type="primary" @click="searchStudent" :loading="searching">
                 <el-icon><Search /></el-icon>
                 查询考生
               </el-button>
@@ -577,23 +577,28 @@ import {
   ArrowDown,
   Minus
 } from '@element-plus/icons-vue'
-
-// 导入API接口
 import {
   getExemptionListAPI,
-  submitExemptionAPI,
-  searchStudentAPI,
-  getAvailableCoursesAPI,
+  createExemptionAPI,
   auditExemptionAPI,
-  batchAuditExemptionAPI,
+  getExemptionDetailAPI,
+  getStudentInfoAPI,
+  searchStudentAPI,
+  uploadMaterialsAPI,
   downloadMaterialsAPI,
   exportExemptionListAPI,
-  uploadMaterialsAPI,
-  getExemptionDetailAPI,
-  withdrawExemptionAPI,
-  getAuditHistoryAPI,
+  getPolicyListAPI,
+  createPolicyAPI,
+  updatePolicyAPI,
+  togglePolicyStatusAPI,
+  getAvailableCoursesAPI,
+  getCourseInfoAPI,
+  getPolicyStatsAPI,
+  getPolicyUsageStatsAPI,
+  getMonthlyTrendDataAPI,
+  getCourseAnalysisDataAPI,
   getExemptionStatsAPI
-} from '@/api/exemption.js'
+} from '@/api/exemption'
 
 // 表单引用
 const applyFormRef = ref(null)
@@ -703,6 +708,7 @@ const courseAnalysisData = ref([
 
 // 响应式数据
 const loading = ref(false)
+const exportLoading = ref(false)
 const showPolicyDialog = ref(false)
 const showApplyDialog = ref(false)
 const showAuditDialog = ref(false)
@@ -833,32 +839,30 @@ const policyList = ref([
 ])
 
 // 免考申请列表
-const exemptionList = ref([
-  {
-    studentId: '2024001',
-    studentName: '张三',
-    major: '计算机科学与技术',
-    courseCode: '001',
-    courseName: '计算机应用基础',
-    exemptionType: '计算机等级考试',
-    applyDate: '2024-01-15',
-    status: 'pending',
-    auditor: '',
-    auditDate: ''
-  },
-  {
-    studentId: '2024002',
-    studentName: '李四',
-    major: '汉语言文学',
-    courseCode: '002',
-    courseName: '大学英语',
-    exemptionType: '英语等级考试',
-    applyDate: '2024-01-10',
-    status: 'final_approved',
-    auditor: '王审核',
-    auditDate: '2024-01-12'
+const exemptionList = ref([])
+
+// 加载免考申请列表
+const loadExemptionList = async () => {
+  try {
+    loading.value = true
+    const response = await getExemptionListAPI({
+      page: currentPage.value,
+      size: pageSize.value,
+      status: searchForm.status,
+      studentName: searchForm.studentName,
+      studentId: searchForm.studentId,
+      dateRange: searchForm.dateRange
+    })
+    exemptionList.value = response.data.records || []
+    total.value = response.data.total || 0
+    updateStatistics()
+  } catch (error) {
+    ElMessage.error('加载免考申请列表失败')
+    console.error('Load exemption list error:', error)
+  } finally {
+    loading.value = false
   }
-])
+}
 
 // 获取免考类型标签
 const getExemptionTypeTag = (type) => {
@@ -894,9 +898,28 @@ const getStatusText = (status) => {
 }
 
 // 搜索免考申请
-const searchExemptions = () => {
-  currentPage.value = 1
-  loadExemptionList()
+const searchExemptions = async () => {
+  try {
+    loading.value = true
+    const response = await getExemptionListAPI({
+      page: 1,
+      size: pageSize.value,
+      status: searchForm.status,
+      studentName: searchForm.studentName,
+      studentId: searchForm.studentId,
+      dateRange: searchForm.dateRange
+    })
+    exemptionList.value = response.data.records || []
+    total.value = response.data.total || 0
+    currentPage.value = 1
+    updateStatistics()
+    ElMessage.success('搜索完成')
+  } catch (error) {
+    ElMessage.error('搜索失败')
+    console.error('Search exemptions error:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
 // 重置搜索
@@ -940,7 +963,7 @@ const viewDetail = (row) => {
 }
 
 // 下载材料
-const handleDownloadMaterials = (row) => {
+const downloadMaterials = (row) => {
   try {
     // 模拟材料数据
     const materialFiles = [
@@ -1064,37 +1087,36 @@ const downloadAllMaterials = (files, studentName) => {
 }
 
 // 导出免考名单
-const handleExportExemptionList = () => {
+const exportExemptionList = async () => {
   try {
-    // 创建Excel数据
-    const exportData = exemptionList.value.map(item => ({
-      '考籍号': item.studentId,
-      '考生姓名': item.studentName,
-      '专业': item.major,
-      '课程代码': item.courseCode,
-      '课程名称': item.courseName,
-      '免考类型': item.exemptionType,
-      '申请时间': item.applyDate,
-      '状态': getStatusText(item.status),
-      '审核人': item.auditor || '-',
-      '审核时间': item.auditDate || '-'
-    }))
-
-    // 创建CSV内容
-    const headers = Object.keys(exportData[0] || {})
-    const csvContent = [
-      headers.join(','),
-      ...exportData.map(row => 
-        headers.map(header => `"${row[header] || ''}"`).join(',')
-      )
-    ].join('\n')
-
-    // 创建Blob对象
-    const blob = new Blob(['\uFEFF' + csvContent], { 
-      type: 'text/csv;charset=utf-8;' 
+    exportLoading.value = true
+    ElMessage.info('正在导出免考名单，请稍候...')
+    
+    // 调用API导出数据
+    const response = await exportExemptionListAPI({
+      status: searchForm.status,
+      studentName: searchForm.studentName,
+      studentId: searchForm.studentId,
+      dateRange: searchForm.dateRange
     })
-
+    
+    // 检查响应
+    if (!response || !response.data) {
+      throw new Error('导出数据为空')
+    }
+    
     // 创建下载链接
+    const blob = response.data instanceof Blob 
+      ? response.data 
+      : new Blob([response.data], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+    
+    // 检查blob大小
+    if (blob.size === 0) {
+      throw new Error('导出文件为空')
+    }
+    
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
@@ -1103,70 +1125,191 @@ const handleExportExemptionList = () => {
     const now = new Date()
     const dateStr = now.toISOString().split('T')[0]
     const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-')
-    const filename = `免考申请名单_${dateStr}_${timeStr}.csv`
+    const filename = `免考申请名单_${dateStr}_${timeStr}.xlsx`
     
     link.setAttribute('download', filename)
     link.style.visibility = 'hidden'
     
-    // 触发下载
+    // 添加到DOM并触发下载
     document.body.appendChild(link)
     link.click()
-    document.body.removeChild(link)
     
-    // 清理URL对象
-    URL.revokeObjectURL(url)
+    // 清理
+    setTimeout(() => {
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    }, 100)
     
     ElMessage.success(`免考名单已导出为 ${filename}`)
+    
   } catch (error) {
     console.error('导出失败:', error)
-    ElMessage.error('导出失败，请重试')
+    
+    // 如果API调用失败，使用本地数据导出CSV
+    try {
+      await exportLocalData()
+    } catch (fallbackError) {
+      console.error('本地导出也失败:', fallbackError)
+      ElMessage.error('导出失败，请重试')
+    }
+  } finally {
+    exportLoading.value = false
   }
 }
 
-// API调用函数
-// 加载免考申请列表
-const loadExemptionList = async () => {
+// 本地数据导出（备用方案）
+const exportLocalData = async () => {
+  if (!exemptionList.value || exemptionList.value.length === 0) {
+    ElMessage.warning('暂无数据可导出')
+    return
+  }
+  
+  // 创建Excel数据
+  const exportData = exemptionList.value.map(item => ({
+    '考籍号': item.studentId || '',
+    '考生姓名': item.studentName || '',
+    '专业': item.major || '',
+    '课程代码': item.courseCode || '',
+    '课程名称': item.courseName || '',
+    '免考类型': item.exemptionType || '',
+    '申请时间': item.applyDate || '',
+    '状态': getStatusText(item.status),
+    '审核人': item.auditor || '-',
+    '审核时间': item.auditDate || '-'
+  }))
+
+  // 创建CSV内容
+  const headers = Object.keys(exportData[0] || {})
+  const csvContent = [
+    headers.join(','),
+    ...exportData.map(row => 
+      headers.map(header => `"${(row[header] || '').toString().replace(/"/g, '""')}"`).join(',')
+    )
+  ].join('\n')
+
+  // 创建Blob对象
+  const blob = new Blob(['\uFEFF' + csvContent], { 
+    type: 'text/csv;charset=utf-8;' 
+  })
+
+  // 创建下载链接
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  
+  // 生成文件名
+  const now = new Date()
+  const dateStr = now.toISOString().split('T')[0]
+  const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-')
+  const filename = `免考申请名单_${dateStr}_${timeStr}.csv`
+  
+  link.setAttribute('download', filename)
+  link.style.visibility = 'hidden'
+  
+  // 触发下载
+  document.body.appendChild(link)
+  link.click()
+  
+  // 清理
+  setTimeout(() => {
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }, 100)
+  
+  ElMessage.success(`免考名单已导出为 ${filename}`)
+}
+
+// 搜索考生
+const searchStudent = async () => {
+  if (!applyForm.studentId.trim()) {
+    ElMessage.warning('请先输入考籍号')
+    return
+  }
+  
+  searching.value = true
+  
   try {
-    loading.value = true
-    const params = {
-      page: currentPage.value,
-      pageSize: pageSize.value,
-      studentName: searchForm.studentName,
-      studentId: searchForm.studentId,
-      status: searchForm.status,
-      startDate: searchForm.dateRange?.[0],
-      endDate: searchForm.dateRange?.[1]
-    }
+    // 调用API查询学生信息
+    const response = await getStudentInfoAPI(applyForm.studentId)
+    const studentData = response.data
     
-    const response = await getExemptionListAPI(params)
-    if (response.code === 200) {
-      exemptionList.value = response.data.list || []
-      total.value = response.data.total || 0
-      
-      // 更新统计数据
-      updateStatistics()
+    if (studentData) {
+      applyForm.studentName = studentData.name
+      applyForm.major = studentData.major
+      autoFillFromSearch.value = true
+      ElMessage.success('考生信息查询成功')
     } else {
-      ElMessage.error(response.message || '获取免考申请列表失败')
+      ElMessage.warning('未找到该考籍号对应的考生信息，请检查考籍号或手动输入')
+      autoFillFromSearch.value = false
     }
   } catch (error) {
-    console.error('获取免考申请列表失败:', error)
-    ElMessage.error('获取免考申请列表失败，请重试')
+    ElMessage.error('查询考生信息失败，请重试')
+    console.error('Search student error:', error)
   } finally {
-    loading.value = false
+    searching.value = false
+  }
+}
+
+// 切换手动输入模式
+const toggleManualInput = (value) => {
+  autoFillFromSearch.value = !value
+  if (value) {
+    // 手动输入模式，清空并启用所有字段
+    applyForm.studentName = ''
+    applyForm.major = ''
+  }
+}
+
+// 政策课程选择变化
+const onPolicyCourseChange = (courseCode) => {
+  const course = availableCourses.value.find(c => c.code === courseCode)
+  if (course) {
+    policyForm.courseName = course.name
+  }
+}
+
+// 课程选择变化
+const onCourseChange = (courseCode) => {
+  const course = availableCourses.value.find(c => c.code === courseCode)
+  if (course) {
+    applyForm.courseName = course.name
+  }
+}
+
+// 材料上传处理
+const handleMaterialChange = async (file) => {
+  try {
+    const formData = new FormData()
+    formData.append('file', file.raw)
+    formData.append('exemptionId', applyForm.studentId) // 使用学号作为临时标识
+    
+    const response = await uploadMaterialsAPI(formData)
+    
+    // 将上传成功的文件信息添加到表单中
+    applyForm.materials.push({
+      name: file.name,
+      url: response.data.url,
+      size: file.size
+    })
+    
+    ElMessage.success('材料上传成功')
+  } catch (error) {
+    ElMessage.error('材料上传失败')
+    console.error('Upload material error:', error)
   }
 }
 
 // 提交免考申请
-const submitExemptionApplication = async () => {
+const submitExemption = async () => {
   try {
     // 验证表单
     if (applyFormRef.value) {
       const valid = await applyFormRef.value.validate()
       if (!valid) return
     }
-
-    // 构建提交数据
-    const submitData = {
+    
+    // 准备申请数据
+    const applicationData = {
       studentId: applyForm.studentId,
       studentName: applyForm.studentName,
       major: applyForm.major,
@@ -1176,225 +1319,261 @@ const submitExemptionApplication = async () => {
       description: applyForm.description,
       materials: applyForm.materials
     }
-
-    const response = await submitExemptionAPI(submitData)
-    if (response.code === 200) {
-      ElMessage.success('免考申请提交成功')
-      showApplyDialog.value = false
-      
-      // 重置表单
-      resetApplyForm()
-      
-      // 刷新列表
-      await loadExemptionList()
-    } else {
-      ElMessage.error(response.message || '提交免考申请失败')
-    }
-  } catch (error) {
-    console.error('提交免考申请失败:', error)
-    ElMessage.error('提交免考申请失败，请重试')
-  }
-}
-
-// 学生信息查询
-const searchStudentInfo = async () => {
-  try {
-    searching.value = true
     
-    if (!applyForm.studentId) {
-      ElMessage.warning('请输入考籍号')
-      return
-    }
-
-    const response = await searchStudentAPI({ studentId: applyForm.studentId })
-    if (response.code === 200 && response.data) {
-      const studentInfo = response.data
-      
-      // 自动填充学生信息
-      applyForm.studentName = studentInfo.name
-      applyForm.major = studentInfo.major
-      
-      autoFillFromSearch.value = true
-      ElMessage.success('学生信息查询成功')
-    } else {
-      ElMessage.warning(response.message || '未找到该考生信息')
-      autoFillFromSearch.value = false
-    }
-  } catch (error) {
-    console.error('查询学生信息失败:', error)
-    ElMessage.error('查询学生信息失败，请重试')
+    // 调用API提交申请
+    const response = await createExemptionAPI(applicationData)
+    
+    ElMessage.success('免考申请提交成功')
+    showApplyDialog.value = false
+    
+    // 重新加载列表
+    await loadExemptionList()
+    
+    // 重置表单
+    Object.keys(applyForm).forEach(key => {
+      if (Array.isArray(applyForm[key])) {
+        applyForm[key] = []
+      } else {
+        applyForm[key] = ''
+      }
+    })
     autoFillFromSearch.value = false
-  } finally {
-    searching.value = false
+    manualInput.value = false
+    
+  } catch (error) {
+    console.error('提交申请失败:', error)
+    ElMessage.error('提交申请失败，请重试')
   }
 }
 
 // 审核免考申请
-const auditExemptionApplication = async (exemption) => {
+const auditExemption = async (row) => {
   try {
-    // 验证审核表单
-    if (auditFormRef.value) {
-      const valid = await auditFormRef.value.validate()
+    // 显示审核对话框
+    ElMessageBox.prompt('请输入审核意见', `审核申请 - ${row.studentName}`, {
+      confirmButtonText: '通过',
+      cancelButtonText: '驳回',
+      inputPlaceholder: '请输入审核意见',
+      inputType: 'textarea',
+      inputValidator: (value) => {
+        if (!value || value.trim() === '') {
+          return '请输入审核意见'
+        }
+        return true
+      }
+    }).then(async ({ value, action }) => {
+      const auditData = {
+        id: row.id || row.studentId,
+        status: action === 'confirm' ? 'approved' : 'rejected',
+        auditComment: value,
+        auditor: '当前用户' // 从用户状态获取
+      }
+      
+      await auditExemptionAPI(auditData)
+      
+      ElMessage.success(`审核${action === 'confirm' ? '通过' : '驳回'}成功`)
+      
+      // 重新加载列表
+      await loadExemptionList()
+      
+    }).catch(() => {
+      ElMessage.info('已取消审核')
+    })
+    
+  } catch (error) {
+    ElMessage.error('审核失败')
+    console.error('Audit error:', error)
+  }
+}
+
+// 提交审核
+const submitAudit = () => {
+  ElMessage.success('审核提交成功')
+  showAuditDialog.value = false
+}
+
+// 编辑政策
+const editPolicy = (row) => {
+  ElMessage.info(`编辑政策: ${row.policyName}`)
+}
+
+// 切换政策状态
+const togglePolicyStatus = (row) => {
+  const action = row.status === 'active' ? '停用' : '启用'
+  ElMessageBox.confirm(`确定要${action}该政策吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    row.status = row.status === 'active' ? 'inactive' : 'active'
+    ElMessage.success(`政策已${action}`)
+  })
+}
+
+// 取消新增政策
+const cancelAddPolicy = () => {
+  showAddPolicyDialog.value = false
+  // 重置表单
+  Object.keys(policyForm).forEach(key => {
+    if (Array.isArray(policyForm[key])) {
+      policyForm[key] = []
+    } else {
+      policyForm[key] = key === 'status' ? 'active' : ''
+    }
+  })
+}
+
+// 保存政策
+const savePolicy = async () => {
+  try {
+    // 验证表单
+    if (policyFormRef.value) {
+      const valid = await policyFormRef.value.validate()
       if (!valid) return
     }
-
-    const auditData = {
-      exemptionId: exemption.id,
-      result: auditForm.result,
-      comment: auditForm.comment,
-      level: auditForm.level
+    
+    // 创建新政策对象
+    const newPolicy = {
+      id: Date.now(), // 临时ID，实际应该由后端生成
+      policyName: policyForm.policyName,
+      courseCode: policyForm.courseCode,
+      courseName: policyForm.courseName,
+      exemptionCondition: policyForm.exemptionCondition,
+      scope: policyForm.scope.join(', '),
+      effectiveDate: policyForm.effectiveDate,
+      status: policyForm.status,
+      remark: policyForm.remark,
+      createTime: new Date().toISOString().split('T')[0]
     }
-
-    const response = await auditExemptionAPI(auditData)
-    if (response.code === 200) {
-      ElMessage.success('审核提交成功')
-      showAuditDialog.value = false
-      
-      // 重置审核表单
-      resetAuditForm()
-      
-      // 刷新列表
-      await loadExemptionList()
-    } else {
-      ElMessage.error(response.message || '审核提交失败')
-    }
+    
+    // 添加到政策列表
+    policyList.value.push(newPolicy)
+    
+    ElMessage.success('政策新增成功')
+    showAddPolicyDialog.value = false
+    
+    // 重置表单
+    cancelAddPolicy()
+    
   } catch (error) {
-    console.error('审核提交失败:', error)
-    ElMessage.error('审核提交失败，请重试')
+    console.error('保存政策失败:', error)
+    ElMessage.error('保存政策失败，请重试')
   }
 }
 
-// 下载申请材料
-const downloadExemptionMaterials = async (exemption) => {
-  try {
-    const response = await downloadMaterialsAPI({ 
-      exemptionId: exemption.id,
-      studentId: exemption.studentId 
-    })
-    
-    // 创建下载链接
-    const blob = new Blob([response], { type: 'application/zip' })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${exemption.studentName}_免考材料.zip`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
-    
-    ElMessage.success('材料下载成功')
-  } catch (error) {
-    console.error('下载材料失败:', error)
-    ElMessage.error('下载材料失败，请重试')
+// 统计相关方法
+const getPassRateType = (rate) => {
+  if (rate >= 90) return 'success'
+  if (rate >= 80) return 'warning'
+  return 'danger'
+}
+
+const getTrendIcon = (trend) => {
+  switch (trend) {
+    case 'up': return 'ArrowUp'
+    case 'down': return 'ArrowDown'
+    case 'stable': return 'Minus'
+    default: return 'Minus'
   }
 }
 
-// 导出免考名单
-const exportExemptionData = async () => {
-  try {
-    const params = {
-      studentName: searchForm.studentName,
-      studentId: searchForm.studentId,
-      status: searchForm.status,
-      startDate: searchForm.dateRange?.[0],
-      endDate: searchForm.dateRange?.[1]
-    }
-    
-    const response = await exportExemptionListAPI(params)
-    
-    // 创建下载链接
-    const blob = new Blob([response], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-    })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    
-    const now = new Date()
-    const dateStr = now.toISOString().split('T')[0]
-    link.download = `免考申请名单_${dateStr}.xlsx`
-    
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
-    
-    ElMessage.success('免考名单导出成功')
-  } catch (error) {
-    console.error('导出免考名单失败:', error)
-    ElMessage.error('导出免考名单失败，请重试')
+const getTrendText = (trend) => {
+  switch (trend) {
+    case 'up': return '上升'
+    case 'down': return '下降'
+    case 'stable': return '稳定'
+    default: return '稳定'
   }
 }
 
-// 加载可免考课程
-const loadAvailableCourses = async () => {
-  try {
-    const response = await getAvailableCoursesAPI()
-    if (response.code === 200) {
-      availableCourses.value = response.data || []
-    }
-  } catch (error) {
-    console.error('获取可免考课程失败:', error)
+const getBarHeight = (value, type) => {
+  const maxValues = {
+    applications: Math.max(...monthlyTrendData.value.map(m => m.applications)),
+    approved: Math.max(...monthlyTrendData.value.map(m => m.approved))
   }
+  const maxValue = maxValues[type] || 1
+  return `${(value / maxValue) * 80}px`
 }
 
-// 获取免考统计数据
-const loadExemptionStats = async () => {
-  try {
-    const response = await getExemptionStatsAPI({ 
-      timeRange: statsTimeRange.value 
-    })
-    if (response.code === 200) {
-      policyStats.value = response.data.stats || policyStats.value
-      policyUsageData.value = response.data.usage || policyUsageData.value
-    }
-  } catch (error) {
-    console.error('获取统计数据失败:', error)
-  }
+const getProgressColor = (percentage) => {
+  if (percentage >= 90) return '#52c41a'
+  if (percentage >= 80) return '#faad14'
+  if (percentage >= 70) return '#fa8c16'
+  return '#ff4d4f'
 }
 
-// 重置表单函数
-const resetApplyForm = () => {
-  Object.keys(applyForm).forEach(key => {
-    if (Array.isArray(applyForm[key])) {
-      applyForm[key] = []
-    } else {
-      applyForm[key] = ''
-    }
-  })
-  autoFillFromSearch.value = false
-  manualInput.value = false
+const refreshStats = () => {
+  ElMessage.success('统计数据已刷新')
+  // 模拟数据刷新
+  calculatePolicyStats()
 }
 
-const resetAuditForm = () => {
-  Object.keys(auditForm).forEach(key => {
-    auditForm[key] = ''
-  })
+const calculatePolicyStats = () => {
+  // 计算政策统计
+  policyStats.value.totalPolicies = policyList.value.length
+  policyStats.value.activePolicies = policyList.value.filter(p => p.status === 'active').length
+  policyStats.value.totalApplications = exemptionList.value.length
+  
+  // 计算通过率
+  const approvedCount = exemptionList.value.filter(app => 
+    app.status === 'final_approved' || app.status === 'first_approved'
+  ).length
+  policyStats.value.approvalRate = exemptionList.value.length > 0 
+    ? Math.round((approvedCount / exemptionList.value.length) * 100) 
+    : 0
 }
 
+// 分页处理
 // 更新统计数据
 const updateStatistics = () => {
-  const pending = exemptionList.value.filter(item => item.status === 'pending').length
-  const approved = exemptionList.value.filter(item => 
-    item.status === 'final_approved'
+  pendingCount.value = exemptionList.value.filter(item => item.status === 'pending').length
+  approvedCount.value = exemptionList.value.filter(item => 
+    item.status === 'final_approved' || item.status === 'first_approved'
   ).length
-  const rejected = exemptionList.value.filter(item => item.status === 'rejected').length
-  
-  pendingCount.value = pending
-  approvedCount.value = approved
-  rejectedCount.value = rejected
+  rejectedCount.value = exemptionList.value.filter(item => item.status === 'rejected').length
+}
+
+// 加载统计数据
+const loadStatistics = async () => {
+  try {
+    const response = await getExemptionStatsAPI()
+    const stats = response.data
+    pendingCount.value = stats.pending || 0
+    approvedCount.value = stats.approved || 0
+    rejectedCount.value = stats.rejected || 0
+  } catch (error) {
+    console.error('Load statistics error:', error)
+  }
+}
+
+// 加载政策数据
+const loadPolicyData = async () => {
+  try {
+    const response = await getPolicyListAPI()
+    policyList.value = response.data.records || []
+  } catch (error) {
+    console.error('Load policy data error:', error)
+  }
+}
+
+// 分页变化处理
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  loadExemptionList()
+}
+
+const handleCurrentChange = (page) => {
+  currentPage.value = page
+  loadExemptionList()
 }
 
 // 组件挂载时初始化数据
-onMounted(() => {
-  pendingCount.value = 15
-  approvedCount.value = 85
-  rejectedCount.value = 10
-  total.value = exemptionList.value.length
-
-  // 计算政策统计
-  // calculatePolicyStats() // ← 这一行报错
+onMounted(async () => {
+  await loadExemptionList()
+  await loadStatistics()
+  await loadPolicyData()
+  calculatePolicyStats()
 })
 </script>
 

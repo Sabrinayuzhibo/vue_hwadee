@@ -31,8 +31,8 @@
 			<el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" label-width="80px" label-position="top"
 				@submit.prevent="handleLogin">
 				<!-- 用户名输入框 -->
-				<el-form-item label="姓名" prop="account">
-					<el-input v-model="loginForm.account" placeholder="请输入姓名" size="large" :prefix-icon="User" />
+				<el-form-item label="姓名" prop="name">
+					<el-input v-model="loginForm.name" placeholder="请输入姓名" size="large" :prefix-icon="User" />
 				</el-form-item>
 
 				<!-- 密码输入框 -->
@@ -71,52 +71,38 @@
 
 <script setup>
 	// 导入Vue 3 Composition API相关函数
-	import {ref,reactive} from 'vue';
-	import { useRouter } from 'vue-router'
-	import {User,Lock} from '@element-plus/icons-vue';
-	import {ElMessage} from 'element-plus';
+	import { ref, reactive } from 'vue';
+	import { useRouter } from 'vue-router';
+	import { User, Lock } from '@element-plus/icons-vue';
+	import { ElMessage } from 'element-plus';
 	import { login } from '@/api/getLogin.js'; // 导入登录API函数
 
-	// 响应式数据定义
-	const loginForm = reactive({
-		account: '', // 用户名
-		password: '', // 密码
-		remember: false // 记住登录状态
-	});
-	const router = useRouter() // 获取路由实例
-	const loading = ref(false); // 加载状态
-	const errorMsg = ref(''); // 错误信息
-	const loginFormRef = ref(null); // 表单引用
+	const router = useRouter(); // 增加这一行
 
-	// 表单验证规则
+	// 响应式数据
+	const loginForm = reactive({
+		name: '',
+		password: '',
+		remember: false
+	});
+
+	const loading = ref(false);
+	const errorMsg = ref(''); // 增加这一行
+	const loginFormRef = ref(null); // 增加这一行
+
+	// 校验规则
 	const loginRules = reactive({
-		account: [{
-				required: true,
-				message: '请输入姓名',
-				trigger: 'blur'
-			},
-			{
-				min: 3,
-				max: 16,
-				message: '姓名长度在3-16个字符',
-				trigger: 'blur'
-			}
+		name: [
+			{ required: true, message: '请输入姓名', trigger: 'blur' },
+			{ min: 2, max: 16, message: '姓名长度在2-16个字符', trigger: 'blur' }
 		],
-		password: [{
-				required: true,
-				message: '请输入密码',
-				trigger: 'blur'
-			},
-			{
-				min: 6,
-				max: 20,
-				message: '密码长度在6-20个字符',
-				trigger: 'blur'
-			}
+		password: [
+			{ required: true, message: '请输入密码', trigger: 'blur' },
+			{ min: 6, max: 20, message: '密码长度在6-20个字符', trigger: 'blur' }
 		]
 	});
 
-	// 登录处理函数
+	// 登录处理
 	const handleLogin = async () => {
 		try {
 			// 表单验证
@@ -129,7 +115,7 @@
 
 			// 调用登录接口
 			const response = await login({
-				account: loginForm.account,
+				name: loginForm.name,
 				password: loginForm.password
 			});
 			// 处理响应
@@ -140,10 +126,10 @@
 					duration: 2000
 				});
 				
-				 // 保存登录状态到本地存储
-				localStorage.setItem('token', response.data.data.token) // 保存token
-				localStorage.setItem('userInfo', JSON.stringify(response.data.data.user)) // 保存用户信息
-				localStorage.setItem('menus', JSON.stringify(response.data.data.menus)) // 保存菜单数据
+				//  // 保存登录状态到本地存储
+				// localStorage.setItem('token', response.data.data.token) // 保存token
+				// localStorage.setItem('userInfo', JSON.stringify(response.data.data.user)) // 保存用户信息
+				// localStorage.setItem('menus', JSON.stringify(response.data.data.menus)) // 保存菜单数据
 
 				// 延迟跳转，实际项目中需替换为路由器跳转
 				setTimeout(() => {

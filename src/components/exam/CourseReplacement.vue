@@ -19,11 +19,10 @@
         </div>
       </template>
       <el-table :data="replacementList" stripe style="width: 100%">
-        <el-table-column prop="oldCourseCode" label="原课程代码" width="120" />
         <el-table-column prop="oldCourseName" label="原课程名称" width="150" />
-        <el-table-column prop="newCourseCode" label="新课程代码" width="120" />
         <el-table-column prop="newCourseName" label="新课程名称" width="150" />
-        <el-table-column prop="major" label="适用专业" width="150" />
+        <el-table-column prop="majorName" label="适用专业" width="150" />
+        <!-- 移除生效时间和失效时间列 -->
         <el-table-column label="操作" width="150">
           <template #default="scope">
             <el-button size="small" type="danger" @click="deleteRule(scope.row)">删除</el-button>
@@ -42,7 +41,13 @@
           <el-input v-model="ruleForm.newCourseName" />
         </el-form-item>
         <el-form-item label="适用专业">
-          <el-input v-model="ruleForm.major" />
+          <el-input v-model="ruleForm.majorName" />
+        </el-form-item>
+        <el-form-item label="生效时间">
+          <el-date-picker v-model="ruleForm.effectiveFrom" type="date" placeholder="选择生效日期" style="width: 100%;" />
+        </el-form-item>
+        <el-form-item label="失效时间">
+          <el-date-picker v-model="ruleForm.effectiveTo" type="date" placeholder="选择失效日期" style="width: 100%;" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -96,7 +101,7 @@ import { fetchReplacementRules, createReplacementRule, deleteReplacementRule } f
 
 const replacementList = ref([])
 const showRuleDialog = ref(false)
-const ruleForm = reactive({ oldCourseName: '', newCourseName: '', major: '' })
+const ruleForm = reactive({ oldCourseName: '', newCourseName: '', majorName: '', effectiveFrom: '', effectiveTo: '' })
 const manualForm = reactive({ oldCourseName: '', newCourseName: '', reason: '' })
 const showManualDialog = ref(false)
 const recordList = ref([])
@@ -104,9 +109,20 @@ const takenCourses = ref([])
 
 const getRules = async () => {
   const res = await fetchReplacementRules()
-  replacementList.value = res.data || []
+  if (res.data && Array.isArray(res.data.data)) {
+    replacementList.value = res.data.data
+  } else {
+    replacementList.value = []
+  }
 }
 const saveRule = async () => {
+  // 日期格式化为 yyyy-MM-dd
+  if (ruleForm.effectiveFrom instanceof Date) {
+    ruleForm.effectiveFrom = ruleForm.effectiveFrom.toISOString().slice(0, 10)
+  }
+  if (ruleForm.effectiveTo instanceof Date) {
+    ruleForm.effectiveTo = ruleForm.effectiveTo.toISOString().slice(0, 10)
+  }
   await createReplacementRule(ruleForm)
   ElMessage.success('保存成功')
   showRuleDialog.value = false
@@ -114,7 +130,7 @@ const saveRule = async () => {
   Object.keys(ruleForm).forEach(k => ruleForm[k] = '')
 }
 const deleteRule = async (row) => {
-  await deleteReplacementRule({ id: row.id })
+  await deleteReplacementRule(row)
   ElMessage.success('删除成功')
   getRules()
 }

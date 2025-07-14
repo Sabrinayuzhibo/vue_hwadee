@@ -1,12 +1,13 @@
 import request from '@/utils/request.js'
 
-// 登录
+// 登录（支持考生与管理员）
 export const login = (data) => {
-	return request({
-		url: '/login/accountLogin',//请求接口
-		method: 'post',//请求方式
-		data//请求参数
-	})
+  // data 结构: { name: '用户名', password: '密码' }
+  return request({
+    url: '/login',      // 后端接口地址
+    method: 'post',     // POST 请求
+    data                // 直接传递对象
+  })
 }
 
 //注册

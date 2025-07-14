@@ -26,22 +26,19 @@ export const createStudentArchive = (data) => {
 
 // ================== 获取考生列表 ==================
 /**
- * 获取考生列表
- * 
- * 接口URL: GET /student/list
- * 
- * 请求参数(query):
- * {
- *   page?: number,    // 页码（可选）
- *   size?: number     // 每页条数（可选）
- * }
+ * 分页查询所有学生信息（不支持模糊匹配）
+ * 接口 URL: GET /student-info/page-all
+ * 请求参数:
+ *   - pageNum: 当前页码（从 1 开始）
+ *   - pageSize: 每页条数
+ * 返回值: 分页后的学生信息列表
  */
 export const getStudentList = (params) => {
-	return request({
-		url: '/student/list',
-		method: 'get',
-		params
-	})
+  return request({
+    url: '/student-info/page-all',
+    method: 'get',
+    params
+  })
 }
 
 // ================== 搜索考生 ==================
@@ -369,58 +366,43 @@ export const loadStudentByName = (name) => {
   })
 }
 
-// ================== 按专业查询考生列表 ==================
 /**
- * 按专业查询考生列表
- * 
- * 接口URL: POST /student-info/loadByMajor
- * 
- * 请求参数(JSON):
- *   major: string // 专业
- * 
- * 返回: StudentInfo[]
+ * 根据专业查询学生列表
+ * 接口 URL: POST /student-info/pageByMajor
+ * 请求参数: {key: '专业代码'}
+ * 返回值: 学生信息列表
  */
 export const loadStudentsByMajor = (major) => {
   return request({
-    url: '/student-info/loadByMajor',
+    url: '/student-info/pageByMajor',
     method: 'post',
     data: major
   })
 }
 
-// ================== 按性别查询考生列表 ==================
 /**
- * 按性别查询考生列表
- * 
- * 接口URL: POST /student-info/loadByGender
- * 
- * 请求参数(JSON):
- *   gender: string // 性别
- * 
- * 返回: StudentInfo[]
+ * 根据性别分页查询学生列表
+ * 接口 URL: POST /student-info/pageByGender
+ * 请求参数: { key, pageNum, pageSize }
+ * 返回值: 分页的学生信息列表
  */
-export const loadStudentsByGender = (gender) => {
+export const loadStudentsByGender = (params) => {
   return request({
-    url: '/student-info/loadByGender',
+    url: '/student-info/pageByGender',
     method: 'post',
-    data: gender
+    data: params
   })
 }
 
-// ================== 按考点名称查询考生列表 ==================
 /**
- * 按考点名称查询考生列表
- * 
- * 接口URL: POST /student-info/loadByExamCenterName
- * 
- * 请求参数(JSON):
- *   examCenterName: string // 考点名称
- * 
- * 返回: StudentInfo[]
+ * 根据考试院名称查询学生列表
+ * 接口 URL: POST /student-info/loadByExamCenterName
+ * 请求参数: {key: '考试院名称'}
+ * 返回值: 学生信息列表
  */
 export const loadStudentsByExamCenterName = (examCenterName) => {
   return request({
-    url: '/student-info/loadByExamCenterName',
+    url: '/student-info/pageByExamCenter',
     method: 'post',
     data: examCenterName
   })

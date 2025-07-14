@@ -30,9 +30,22 @@
         <el-form-item label="姓名">
           <el-input v-model="searchForm.name" placeholder="请输入姓名" clearable />
         </el-form-item>
+        <el-form-item label="专业">
+          <el-input v-model="searchForm.major" placeholder="请输入专业" clearable />
+        </el-form-item>
+        <el-form-item label="性别">
+          <el-select v-model="searchForm.gender" placeholder="请选择性别" clearable style="width: 180px;">
+            <el-option label="男" value="男" />
+            <el-option label="女" value="女" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="考试院">
+          <el-input v-model="searchForm.examInstitute" placeholder="请输入考试院名称" clearable />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="searchStudents">查询</el-button>
           <el-button @click="resetSearch">重置</el-button>
+          <el-button type="success" @click="fetchAllStudents" style="margin-left:1000px;">查询全部学生</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -43,10 +56,10 @@
         <div class="card-header">
           <span>考生考籍档案列表</span>
           <div class="header-actions">
-            <el-tag type="info">总数: {{ totalCount }}</el-tag>
-            <el-tag type="success">正常: {{ normalCount }}</el-tag>
-            <el-tag type="primary">冻结: {{ frozenCount }}</el-tag>
-            <el-tag type="danger">注销: {{ cancelledCount }}</el-tag>
+            <el-tag type="info">当前页面总数: {{ totalCount }}</el-tag>
+            <el-tag type="success">当前页面正常: {{ normalCount }}</el-tag>
+            <el-tag type="primary">当前页面冻结: {{ frozenCount }}</el-tag>
+            <el-tag type="danger">当前页面注销: {{ cancelledCount }}</el-tag>
           </div>
         </div>
       </template>
@@ -54,18 +67,18 @@
       <el-table :data="studentList" stripe style="width: 100%" v-loading="loading">
         <el-table-column prop="studentId" label="考籍号" width="120" />
         <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="idCard" label="身份证号" width="180" />
-        <el-table-column prop="major" label="专业" width="150" />
-        <el-table-column prop="registerDate" label="注册时间" width="120" />
-        <el-table-column prop="status" label="状态" width="80">
-          <template #default="scope">
-            <el-tag :type="getStatusType(scope.row.status)">
-              {{ getStatusText(scope.row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
+        <el-table-column prop="idNumber" label="身份证号" width="180" />
+        <el-table-column prop="majorCode" label="专业代码" width="150" />
+        <el-table-column prop="examCenterName" label="考试院" width="150" />
+        <el-table-column prop="birthDate" label="出生日期" width="120" />
+        <el-table-column prop="gender" label="性别" width="80" />
         <el-table-column prop="phone" label="联系电话" width="120" />
         <el-table-column prop="address" label="住址" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="activate" label="激活" width="80" />
+        <el-table-column prop="frozened" label="冻结" width="80" />
+        <el-table-column prop="isDeleted" label="已删除" width="80" />
+        <el-table-column prop="createTime" label="创建时间" width="180" />
+        <el-table-column prop="updateTime" label="更新时间" width="180" />
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="scope">
             <el-button size="small" @click="viewStudent(scope.row)">查看</el-button>
@@ -94,8 +107,8 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
           :total="total"
+          :page-sizes="[10,20,50,100]"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
@@ -152,8 +165,8 @@
       <el-descriptions :column="2" border>
         <el-descriptions-item label="考籍号">{{ currentDetailStudent?.studentId }}</el-descriptions-item>
         <el-descriptions-item label="姓名">{{ currentDetailStudent?.name }}</el-descriptions-item>
-        <el-descriptions-item label="身份证号">{{ currentDetailStudent?.idCard }}</el-descriptions-item>
-        <el-descriptions-item label="专业">{{ currentDetailStudent?.major }}</el-descriptions-item>
+        <el-descriptions-item label="身份证号">{{ currentDetailStudent?.idNumber }}</el-descriptions-item>
+        <el-descriptions-item label="专业">{{ currentDetailStudent?.majorCode }}</el-descriptions-item>
         <el-descriptions-item label="注册时间">{{ currentDetailStudent?.registerDate }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(currentDetailStudent?.status)">
@@ -307,7 +320,7 @@
         <el-descriptions :column="3" border style="margin-bottom: 20px;">
           <el-descriptions-item label="考籍号">{{ currentScoreStudent?.studentId }}</el-descriptions-item>
           <el-descriptions-item label="姓名">{{ currentScoreStudent?.name }}</el-descriptions-item>
-          <el-descriptions-item label="专业">{{ currentScoreStudent?.major }}</el-descriptions-item>
+          <el-descriptions-item label="专业">{{ currentScoreStudent?.majorCode }}</el-descriptions-item>
         </el-descriptions>
         
         <!-- 课程信息概览 -->
@@ -363,6 +376,7 @@ import ScoreManagement from './ScoreManagement.vue'
 import * as echarts from 'echarts'
 import { getStudentList } from '@/api/getStudent.js'
 import {loadStudentByIdCardNumber,loadStudentByStudentId,loadStudentByName} from '@/api/getStudent.js'
+import{ loadStudentsByMajor, loadStudentsByGender, loadStudentsByExamCenterName } from'@/api/getStudent.js'
 // 响应式数据
 const loading = ref(false)
 const showCreateDialog = ref(false)
@@ -398,7 +412,10 @@ const currentDetailStudent = ref(null) // 当前查看详情的学生
 const searchForm = reactive({
   studentId: '',
   idCard: '',
-  name: ''
+  name: '',
+  major: '',
+  gender: '',
+  examInstitute: '' // 新增
 })
 
 // 创建表单
@@ -472,321 +489,8 @@ const keyInfoRules = {
   ]
 }
 
-// 模拟数据
-const studentList = ref([
-  {
-    studentId: '2024001',
-    name: '张三',
-    idCard: '110101199001011234',
-    major: '计算机科学与技术',
-    registerDate: '2024-01-15',
-    status: 'normal',
-    phone: '13800138001',
-    address: '北京市朝阳区xxx街道xxx号',
-    courses: [
-      {
-        courseCode: 'CS001',
-        courseName: '计算机基础',
-        courseType: 'theory',
-        examDate: '2024-03-15',
-        score: 85,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS002',
-        courseName: '程序设计基础',
-        courseType: 'practice',
-        examDate: '2024-04-20',
-        score: 92,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS003',
-        courseName: '数据结构',
-        courseType: 'theory',
-        examDate: '2024-05-10',
-        score: 78,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS004',
-        courseName: '数据库原理',
-        courseType: 'practice',
-        examDate: '2024-06-05',
-        score: 88,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS005',
-        courseName: '操作系统',
-        courseType: 'theory',
-        examDate: '2024-07-10',
-        score: 82,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS006',
-        courseName: '计算机网络',
-        courseType: 'theory',
-        examDate: '2024-08-15',
-        score: 90,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS007',
-        courseName: '软件工程',
-        courseType: 'practice',
-        examDate: '2024-09-20',
-        score: 87,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS008',
-        courseName: '人工智能基础',
-        courseType: 'theory',
-        examDate: '2024-10-25',
-        score: 85,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS009',
-        courseName: '机器学习',
-        courseType: 'practice',
-        examDate: '2024-11-30',
-        score: 89,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS010',
-        courseName: '毕业设计',
-        courseType: 'thesis',
-        examDate: '2024-12-15',
-        score: 92,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS011',
-        courseName: '高等数学',
-        courseType: 'theory',
-        examDate: '2024-02-20',
-        score: 76,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS012',
-        courseName: '线性代数',
-        courseType: 'theory',
-        examDate: '2024-03-05',
-        score: 84,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS013',
-        courseName: '概率论与数理统计',
-        courseType: 'theory',
-        examDate: '2024-04-10',
-        score: 79,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS014',
-        courseName: '离散数学',
-        courseType: 'theory',
-        examDate: '2024-05-25',
-        score: 86,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CS015',
-        courseName: '编译原理',
-        courseType: 'theory',
-        examDate: '2024-06-20',
-        score: 81,
-        status: 'normal'
-      }
-    ]
-  },
-  {
-    studentId: '2024002',
-    name: '李四',
-    idCard: '110101199002022345',
-    major: '汉语言文学',
-    registerDate: '2024-01-20',
-    status: 'frozen',
-    phone: '13800138002',
-    address: '北京市海淀区xxx街道xxx号',
-    courses: [
-      {
-        courseCode: 'CL001',
-        courseName: '古代文学',
-        courseType: 'theory',
-        examDate: '2024-03-20',
-        score: 82,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL002',
-        courseName: '现代文学',
-        courseType: 'theory',
-        examDate: '2024-04-25',
-        score: 89,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL003',
-        courseName: '文学创作',
-        courseType: 'practice',
-        examDate: '2024-05-15',
-        score: 95,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL004',
-        courseName: '中国现当代文学',
-        courseType: 'theory',
-        examDate: '2024-06-10',
-        score: 88,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL005',
-        courseName: '外国文学',
-        courseType: 'theory',
-        examDate: '2024-07-05',
-        score: 85,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL006',
-        courseName: '文学理论',
-        courseType: 'theory',
-        examDate: '2024-08-20',
-        score: 91,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL007',
-        courseName: '语言学概论',
-        courseType: 'theory',
-        examDate: '2024-09-15',
-        score: 83,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL008',
-        courseName: '古代汉语',
-        courseType: 'theory',
-        examDate: '2024-10-10',
-        score: 87,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL009',
-        courseName: '现代汉语',
-        courseType: 'theory',
-        examDate: '2024-11-05',
-        score: 90,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL010',
-        courseName: '写作学',
-        courseType: 'practice',
-        examDate: '2024-12-01',
-        score: 93,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL011',
-        courseName: '修辞学',
-        courseType: 'theory',
-        examDate: '2024-02-15',
-        score: 86,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL012',
-        courseName: '比较文学',
-        courseType: 'theory',
-        examDate: '2024-03-10',
-        score: 84,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL013',
-        courseName: '文学批评',
-        courseType: 'practice',
-        examDate: '2024-04-05',
-        score: 89,
-        status: 'normal'
-      },
-      {
-        courseCode: 'CL014',
-        courseName: '毕业设计',
-        courseType: 'thesis',
-        examDate: '2024-12-20',
-        score: 88,
-        status: 'normal'
-              }
-      ]
-    },
-    {
-      studentId: '2024003',
-      name: '王五',
-      idCard: '110101199003033456',
-      major: '工商管理',
-      registerDate: '2024-02-01',
-      status: 'cancelled',
-      phone: '13800138003',
-      address: '北京市西城区xxx街道xxx号',
-      courses: [
-        {
-          courseCode: 'BM001',
-          courseName: '管理学原理',
-          courseType: 'theory',
-          examDate: '2024-03-25',
-          score: 88,
-          status: 'normal'
-        },
-        {
-          courseCode: 'BM002',
-          courseName: '市场营销',
-          courseType: 'theory',
-          examDate: '2024-04-30',
-          score: 92,
-          status: 'normal'
-        }
-      ]
-    },
-    {
-      studentId: '2024004',
-      name: '赵六',
-      idCard: '110101199004044567',
-      major: '会计学',
-      registerDate: '2024-02-15',
-      status: 'normal',
-      phone: '13800138004',
-      address: '北京市东城区xxx街道xxx号',
-      courses: [
-        {
-          courseCode: 'AC001',
-          courseName: '会计学原理',
-          courseType: 'theory',
-          examDate: '2024-03-30',
-          score: 85,
-          status: 'normal'
-        },
-        {
-          courseCode: 'AC002',
-          courseName: '财务管理',
-          courseType: 'theory',
-          examDate: '2024-05-05',
-          score: 90,
-          status: 'normal'
-        }
-      ]
-    }
-])
+// 学生列表数据
+const studentList = ref([])
 
 // 获取状态类型
 const getStatusType = (status) => {
@@ -815,13 +519,13 @@ const getStatusText = (status) => {
 }
 
 // 获取统计数据
-//用于统计不同状态的数量
+// 用于统计当前页不同状态的数量
 const getStatistics = () => {
   const students = studentList.value
   totalCount.value = students.length
-  normalCount.value = students.filter(s => s.status === 'normal').length
-  frozenCount.value = students.filter(s => s.status === 'frozen').length
-  cancelledCount.value = students.filter(s => s.status === 'cancelled').length
+  normalCount.value = students.filter(s => s.activate === true && !s.frozened && !s.isDeleted).length
+  frozenCount.value = students.filter(s => s.frozened === true).length
+  cancelledCount.value = students.filter(s => s.isDeleted === true).length
 }
 
 // 课程类型相关工具函数
@@ -864,6 +568,7 @@ const getScoreStatusText = (status) => {
 
 // 搜索考生
 const searchStudents = async () => {
+  queryMode.value = 'search'
   try {
     loading.value = true
     let res = null
@@ -874,6 +579,7 @@ const searchStudents = async () => {
       studentList.value = data ? [data] : []
       total.value = studentList.value.length
       ElMessage.success(`查询完成，共找到 ${total.value} 条记录`)
+      getStatistics()
       return
     }
     // 2. 身份证号精确查找
@@ -883,8 +589,10 @@ const searchStudents = async () => {
       studentList.value = data ? [data] : []
       total.value = studentList.value.length
       ElMessage.success(`查询完成，共找到 ${total.value} 条记录`)
+      getStatistics()
       return
     }
+  
     // 3. 姓名精确查找
     if (searchForm.name && searchForm.name.trim() !== '') {
       res = await loadStudentByName({key: searchForm.name.trim()})
@@ -892,22 +600,100 @@ const searchStudents = async () => {
       studentList.value = data ? [data] : []
       total.value = studentList.value.length
       ElMessage.success(`查询完成，共找到 ${total.value} 条记录`)
+      getStatistics()
       return
     }
-    // 4. 全部为空
+
+
+
+
+      ///以下都分页
+    // 4. 专业模糊查找
+    if (searchForm.major && searchForm.major.trim() !== '') {
+      res = await loadStudentsByMajor({
+        key: searchForm.major.trim(),
+        pageNum:currentPage.value,
+        pageSize:pageSize.value
+      })
+      const data = res.data.data.records
+      const total_num=res.data.data.total//总的请求数
+      studentList.value = Array.isArray(data) ? data : []
+      total.value =total_num//把分页查询的总数改了
+      ElMessage.success(`查询完成，共找到 ${total.value} 条记录`)
+      getStatistics()
+      return
+    }
+    // 5. 性别模糊查找
+    if (searchForm.gender && searchForm.gender.trim() !== '') {
+      console.log(currentPage.value)
+      res = await loadStudentsByGender({
+        key: searchForm.gender.trim(),
+        pageNum:currentPage.value,
+        pageSize:pageSize.value
+      })
+      const data = res.data.data.records
+      const total_num=res.data.data.total
+      console.log(res.data)
+      studentList.value = Array.isArray(data) ? data : []
+      total.value = total_num
+      ElMessage.success(`查询完成，共找到 ${total.value} 条记录`)
+      getStatistics()
+      return
+    }
+    // 6. 考试院模糊查找
+    if (searchForm.examInstitute && searchForm.examInstitute.trim() !== '') {
+      res = await loadStudentsByExamCenterName({
+        key: searchForm.examInstitute.trim(),
+        pageNum:currentPage.value,
+        pageSize:pageSize.value
+      })
+      const data = res.data.data.records
+      const total_num=res.data.data.total
+      studentList.value = Array.isArray(data) ? data : []
+      total.value = total_num
+      ElMessage.success(`查询完成，共找到 ${total.value} 条记录`)
+      getStatistics()
+      return
+    }
+    // 7. 全部为空
     ElMessage.warning('请至少输入一个查询条件')
     studentList.value = []
     total.value = 0
+    getStatistics()
   } catch (error) {
     console.error('搜索失败:', error)
     ElMessage.error('搜索失败，请重试')
     studentList.value = []
     total.value = 0
+    getStatistics()
   } finally {
     loading.value = false
   }
 }
-
+// 新增：查询全部学生方法
+const fetchAllStudents = async () => {
+  queryMode.value = 'all'
+  try {
+    loading.value = true
+    const res = await getStudentList({
+      pageNum: currentPage.value,
+      pageSize: pageSize.value
+    })
+    const data = res.data.data
+    studentList.value = Array.isArray(data.records) ? data.records : []
+    total.value = data.total || 0
+    ElMessage.success(`查询完成，共找到 ${total.value} 条记录`)
+    getStatistics()
+  } catch (error) {
+    console.error('查询全部学生失败:', error)
+    ElMessage.error('查询全部学生失败，请重试')
+    studentList.value = []
+    total.value = 0
+    getStatistics()
+  } finally {
+    loading.value = false
+  }
+}
 // 重置搜索
 const resetSearch = () => {
   Object.keys(searchForm).forEach(key => {
@@ -1138,13 +924,21 @@ const handleFileChange = (file) => {
 // 分页处理
 const handleSizeChange = (size) => {
   pageSize.value = size
-  currentPage.value = 1 // 切换每页条数时重置到第一页
-  searchStudents()
+  currentPage.value = 1
+  if (queryMode.value === 'all') {
+    fetchAllStudents()
+  } else {
+    searchStudents()
+  }
 }
 
 const handleCurrentChange = (page) => {
   currentPage.value = page
-  searchStudents()
+  if (queryMode.value === 'all') {
+    fetchAllStudents()
+  } else {
+    searchStudents()
+  }
 }
 
 // 统计分析弹窗显示状态
@@ -1272,6 +1066,9 @@ onMounted(() => {
   // 初始化统计数据
   getStatistics()
 })
+
+const queryMode = ref('all') // 'all' 或 'search'
+
 </script>
 
 <style scoped>

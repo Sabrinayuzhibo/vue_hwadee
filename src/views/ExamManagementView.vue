@@ -82,10 +82,34 @@
               <p>请从左侧选择要管理的功能模块</p>
               <div class="quick-stats">
                 <el-row :gutter="20">
-                  <el-col :span="6">
+                  <el-col :span="4">
                     <el-card class="stat-card">
-                      <div class="stat-number">1,234</div>
+                      <div class="stat-number">{{ studentCount }}</div>
                       <div class="stat-label">总考生数</div>
+                    </el-card>
+                  </el-col>
+                  <el-col :span="4">
+                    <el-card class="stat-card">
+                      <div class="stat-number">{{ majorCount }}</div>
+                      <div class="stat-label">专业数</div>
+                    </el-card>
+                  </el-col>
+                  <el-col :span="4">
+                    <el-card class="stat-card">
+                      <div class="stat-number">{{ courseCount }}</div>
+                      <div class="stat-label">课程数</div>
+                    </el-card>
+                  </el-col>
+                  <el-col :span="4">
+                    <el-card class="stat-card">
+                      <div class="stat-number">{{ examCenterCount }}</div>
+                      <div class="stat-label">考试院数</div>
+                    </el-card>
+                  </el-col>
+                  <el-col :span="4">
+                    <el-card class="stat-card">
+                      <div class="stat-number">{{ adminCount }}</div>
+                      <div class="stat-label">管理员数</div>
                     </el-card>
                   </el-col>
                 </el-row>
@@ -99,10 +123,11 @@
 </template>
 
 <script setup>
-import { ref, computed, markRaw } from 'vue'
+import { ref, computed, markRaw, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
+import { fetchStudentCount, fetchMajorCount, fetchCourseCount, fetchExamCenterCount, fetchAdminCount } from '@/api/getCommon'
 
 // 导入功能模块组件
 import StudentArchive from '../components/exam/StudentArchive.vue'
@@ -116,6 +141,30 @@ const router = useRouter()
 
 // 响应式数据
 const currentModuleKey = ref('')
+const studentCount = ref('-')
+const majorCount = ref('-')
+const courseCount = ref('-')
+const examCenterCount = ref('-')
+const adminCount = ref('-')
+
+onMounted(async () => {
+  try {
+    const [stuRes, majorRes, courseRes, examRes, adminRes] = await Promise.all([
+      fetchStudentCount(),
+      fetchMajorCount(),
+      fetchCourseCount(),
+      fetchExamCenterCount(),
+      fetchAdminCount()
+    ])
+    studentCount.value = (stuRes && stuRes.data && stuRes.data.code === 100000) ? stuRes.data.data : '-'
+    majorCount.value = (majorRes && majorRes.data && majorRes.data.code === 100000) ? majorRes.data.data : '-'
+    courseCount.value = (courseRes && courseRes.data && courseRes.data.code === 100000) ? courseRes.data.data : '-'
+    examCenterCount.value = (examRes && examRes.data && examRes.data.code === 100000) ? examRes.data.data : '-'
+    adminCount.value = (adminRes && adminRes.data && adminRes.data.code === 100000) ? adminRes.data.data : '-'
+  } catch (e) {
+    studentCount.value = majorCount.value = courseCount.value = examCenterCount.value = adminCount.value = '-'
+  }
+})
 
 // 功能模块配置
 const moduleList = ref([
@@ -407,6 +456,12 @@ const auditResultMessage = ref('暂无审核结果')
 
 .quick-stats {
   margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  max-width: 800px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .stat-card {
@@ -414,6 +469,13 @@ const auditResultMessage = ref('暂无审核结果')
   padding: 20px;
   border-radius: 8px;
   transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .stat-card:hover {
@@ -425,11 +487,18 @@ const auditResultMessage = ref('暂无审核结果')
   font-weight: bold;
   color: #409eff;
   margin-bottom: 8px;
+  width: 100%;
+  text-align: center;
 }
 
 .stat-label {
   font-size: 14px;
   color: #909399;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 响应式设计 */
@@ -509,4 +578,4 @@ const auditResultMessage = ref('暂无审核结果')
   text-overflow: ellipsis;
   flex-shrink: 0;
 }
-</style> 
+</style>

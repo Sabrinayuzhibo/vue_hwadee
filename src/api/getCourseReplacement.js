@@ -1,3 +1,17 @@
+// 获取所有专业列表
+export const fetchMajorList = () => {
+    return request({
+        url: '/get-majors',
+        method: 'get'
+    })
+}
+// 获取所有课程列表
+export const fetchCourseList = () => {
+    return request({
+        url: '/get-courses',
+        method: 'get'
+    })
+}
 import request from '@/utils/request.js'
 
 // 获取所有顶替规则（无分页）

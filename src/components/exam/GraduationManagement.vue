@@ -58,27 +58,7 @@
         </el-table-column>
         <el-table-column prop="auditor" label="审核人" width="100" />
         <!-- 审核时间已删除 -->
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="scope">
-            <el-button size="small" @click="viewDetail(scope.row)">查看</el-button>
-            <el-button 
-              size="small" 
-              type="primary" 
-              @click="auditGraduation(scope.row)"
-              v-if="scope.row.status === 'pending'"
-            >
-              审核
-            </el-button>
-            <el-button 
-              size="small" 
-              type="success" 
-              @click="issueCertificate(scope.row)"
-              v-if="scope.row.status === 'final_approved'"
-            >
-              发证
-            </el-button>
-          </template>
-        </el-table-column>
+        <!-- 操作列已删除 -->
       </el-table>
 
     </el-card>
@@ -107,17 +87,14 @@
             <el-radio label="reject">驳回</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="审核级别" prop="level">
-          <el-select v-model="auditForm.level" placeholder="请选择审核级别">
-            <el-option label="市州审核" value="city" />
-            <el-option label="省考试院终审" value="province" />
-          </el-select>
+        <el-form-item label="是否符合毕业条件" prop="qualified" label-width="180px">
+          <!-- 选项已移除 -->
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="showAuditDialog = false">取消</el-button>
-          <el-button type="primary" @click="submitAudit">提交审核</el-button>
+          <el-button type="primary" @click="submitAudit">确认申请</el-button>
         </span>
       </template>
     </el-dialog>
@@ -161,7 +138,7 @@ const applyForm = reactive({
 // 审核表单
 const auditForm = reactive({
   result: '',
-  level: ''
+  qualified: null
 })
 
 // 表单验证规则
@@ -171,32 +148,13 @@ const auditRules = {
   result: [
     { required: true, message: '请选择审核结果', trigger: 'change' }
   ],
-  level: [
-    { required: true, message: '请选择审核级别', trigger: 'change' }
+  qualified: [
+    { required: true, message: '请选择是否符合毕业条件', trigger: 'change' }
   ]
 }
 
 // 毕业申请列表
-const graduationList = ref([
-  {
-    studentId: '2024001',
-    studentName: '张三',
-    major: '计算机科学与技术',
-    courseCount: 15,
-    totalCredits: 75,
-    status: 'pending',
-    auditor: ''
-  },
-  {
-    studentId: '2024002',
-    studentName: '李四',
-    major: '汉语言文学',
-    courseCount: 12,
-    totalCredits: 60,
-    status: 'final_approved',
-    auditor: '王审核'
-  }
-])
+const graduationList = ref([])
 
 
 
@@ -379,4 +337,4 @@ onMounted(() => {
     justify-content: center;
   }
 }
-</style> 
+</style>

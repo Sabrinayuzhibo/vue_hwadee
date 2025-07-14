@@ -1,4 +1,3 @@
-
 <template>
   <div class="course-replacement">
     <!-- 顶部按钮 -->
@@ -35,13 +34,19 @@
     <el-dialog v-model="showRuleDialog" title="新增顶替规则" width="500px">
       <el-form :model="ruleForm" label-width="100px">
         <el-form-item label="原课程名称">
-          <el-input v-model="ruleForm.oldCourseName" />
+          <el-select v-model="ruleForm.oldCourseName" filterable placeholder="请选择原课程">
+            <el-option v-for="item in courseOptions" :key="item.courseId" :label="item.courseName" :value="item.courseName" />
+          </el-select>
         </el-form-item>
         <el-form-item label="新课程名称">
-          <el-input v-model="ruleForm.newCourseName" />
+          <el-select v-model="ruleForm.newCourseName" filterable placeholder="请选择新课程">
+            <el-option v-for="item in courseOptions" :key="item.courseId" :label="item.courseName" :value="item.courseName" />
+          </el-select>
         </el-form-item>
         <el-form-item label="适用专业">
-          <el-input v-model="ruleForm.majorName" />
+          <el-select v-model="ruleForm.majorName" filterable placeholder="请选择专业">
+            <el-option v-for="item in majorOptions" :key="item.majorCode" :label="item.majorName" :value="item.majorName" />
+          </el-select>
         </el-form-item>
         <el-form-item label="生效时间">
           <el-date-picker v-model="ruleForm.effectiveFrom" type="date" placeholder="选择生效日期" style="width: 100%;" />
@@ -97,7 +102,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { fetchReplacementRules, createReplacementRule, deleteReplacementRule } from '@/api/getCourseReplacement.js'
+import { fetchReplacementRules, createReplacementRule, deleteReplacementRule, fetchCourseList, fetchMajorList } from '@/api/getCourseReplacement.js'
 
 const replacementList = ref([])
 const showRuleDialog = ref(false)
@@ -106,6 +111,8 @@ const manualForm = reactive({ oldCourseName: '', newCourseName: '', reason: '' }
 const showManualDialog = ref(false)
 const recordList = ref([])
 const takenCourses = ref([])
+const courseOptions = ref([])
+const majorOptions = ref([])
 
 const getRules = async () => {
   const res = await fetchReplacementRules()
@@ -115,6 +122,25 @@ const getRules = async () => {
     replacementList.value = []
   }
 }
+
+const getCourseOptions = async () => {
+  const res = await fetchCourseList()
+  if (res.data && Array.isArray(res.data.data)) {
+    courseOptions.value = res.data.data
+  } else {
+    courseOptions.value = []
+  }
+}
+
+const getMajorOptions = async () => {
+  const res = await fetchMajorList()
+  if (res.data && Array.isArray(res.data.data)) {
+    majorOptions.value = res.data.data
+  } else {
+    majorOptions.value = []
+  }
+}
+
 const saveRule = async () => {
   // 日期格式化为 yyyy-MM-dd
   if (ruleForm.effectiveFrom instanceof Date) {
@@ -146,6 +172,8 @@ const getRecords = async () => {
 onMounted(() => {
   getRules()
   getRecords()
+  getCourseOptions()
+  getMajorOptions()
 })
 </script>
 

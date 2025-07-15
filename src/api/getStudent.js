@@ -105,52 +105,9 @@ export const deleteStudent = (id) => {
 	})
 }
 
-// ================== 更新考生非关键信息 ==================
-/**
- * 更新考生非关键信息（联系电话、住址）
- * 
- * 接口URL: PUT /student/updateNonKeyInfo
- * 
- * 请求参数(JSON):
- * {
- *   studentId: string, // 考籍号
- *   phone: string,     // 联系电话
- *   address: string    // 住址
- * }
- */
-export const updateNonKeyStudentInfo = (data) => {
-	return request({
-		url: '/student/updateNonKeyInfo',
-		method: 'put',
-		data
-	})
-}
 
-// ================== 提交关键信息变更申请 ==================
-/**
- * 提交关键信息变更申请
- * 
- * 接口URL: POST /student/submitKeyInfoChange
- * 
- * 请求参数(JSON):
- * {
- *   studentId: string,   // 考籍号
- *   oldName: string,     // 原姓名
- *   newName: string,     // 新姓名
- *   oldIdCard: string,   // 原身份证号
- *   newIdCard: string,   // 新身份证号
- *   statusChange: string,// 考籍状态变更（none/freeze/unfreeze/cancel）
- *   reason: string,      // 变更原因
- *   attachments: array   // 证明材料（文件列表）
- * }
- */
-export const submitKeyInfoChange = (data) => {
-	return request({
-		url: '/student/submitKeyInfoChange',
-		method: 'post',
-		data
-	})
-}
+
+
 
 // ================== 获取变更申请列表 ==================
 /**
@@ -407,4 +364,44 @@ export const loadStudentsByExamCenterName = (examCenterName) => {
     data: examCenterName
   })
 }
-
+/**
+ * 更新考生非关键信息（仅限地址与电话）
+ * 
+ * 接口URL: POST /student-change
+ * 
+ * 请求参数(JSON):
+ * {
+ *   name: string,    // 学生姓名
+ *   address: string, // 新地址
+ *   phone: string    // 新手机号
+ * }
+ */
+export const updateNonKeyStudentInfo = (data) => {
+	return request({
+	  url: '/student-info/student-change',
+	  method: 'post',
+	  data
+	})
+  }
+  // ================== 提交关键信息变更申请 ==================
+/**
+ * 学生关键信息变更（姓名、身份证号、冻结/注销）
+ * 
+ * 接口URL: POST /student-info-update
+ * 
+ * 请求参数(JSON):
+ * {
+ *   name: string,      // 原姓名
+ *   newName: string,   // 新姓名
+ *   numberId: string,  // 新身份证号
+ *   frozened: boolean, // 是否冻结
+ *   isDeleted: boolean // 是否注销
+ * }
+ */
+export const submitKeyInfoChange = (data) => {
+  return request({
+    url: '/student-info/student-info-update',
+    method: 'post',
+    data
+  })
+}

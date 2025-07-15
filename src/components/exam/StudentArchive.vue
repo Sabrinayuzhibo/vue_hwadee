@@ -810,10 +810,12 @@ const submitNonKeyInfo = async () => {
     nonKeyInfoLoading.value = true
 
     const submitData = {
-      studentId: currentEditStudent.value.studentId,
-      phone: nonKeyInfoForm.phone,
-      address: nonKeyInfoForm.address
+      name: currentEditStudent.value.name,
+      address: nonKeyInfoForm.address,
+      phone: nonKeyInfoForm.phone
+     
     }
+    console.log(submitData)
 
     const response = await updateNonKeyStudentInfo(submitData)
 
@@ -855,16 +857,16 @@ const handleSubmitKeyInfoChange = async () => {
     if (!valid) return
 
     keyInfoLoading.value = true
+    const isDeleted=false
+    const frozened=false
 
     const submitData = {
-      studentId: currentEditStudent.value.studentId,
-      oldName: keyInfoForm.oldName,
+      name: keyInfoForm.oldName,
       newName: keyInfoForm.newName,
-      oldIdCard: keyInfoForm.oldIdCard,
-      newIdCard: keyInfoForm.newIdCard,
-      statusChange: keyInfoForm.statusChange,
-      reason: keyInfoForm.reason,
-      attachments: keyInfoForm.attachments
+      numberId: keyInfoForm.newIdCard,
+      // 状态字段
+      frozened: keyInfoForm.statusChange === 'freeze',
+      isDeleted: keyInfoForm.statusChange === 'cancel'
     }
 
     const response = await submitKeyInfoChange(submitData)

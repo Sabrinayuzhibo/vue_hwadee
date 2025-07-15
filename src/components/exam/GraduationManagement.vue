@@ -3,36 +3,47 @@
     <!-- 功能操作栏 -->
     <div class="operation-bar">
       <el-row :gutter="20">
-        <el-col :span="6">
-          <el-button type="primary" @click="showApplyDialog = true">
-            <el-icon><Plus /></el-icon>
-            毕业申请
-          </el-button>
-        </el-col>
-        <el-col :span="6">
-          <el-button type="success" @click="showAuditDialog = true">
-            <el-icon><Search /></el-icon>
-            资格审核
-          </el-button>
-        </el-col>
+    <el-col :span="6">
+      <el-button type="primary" @click="dialogVisible = true">
+        <el-icon><Plus /></el-icon>
+        毕业申请
+      </el-button>
+  <!-- 毕业申请表单弹窗 -->
+  <el-dialog v-model="dialogVisible" title="毕业申请" width="500px" :close-on-click-modal="false">
+    <el-form :model="form" label-width="110px">
+      <el-form-item label="毕业情况：">
+      </el-form-item>
+      <el-form-item label="姓名：">
+      </el-form-item>
+      <el-form-item label="考籍号：">
+      </el-form-item>
+      <el-form-item label="身份证号：">
+      </el-form-item>
+      <el-form-item label="性别：">
+      </el-form-item>
+      <el-form-item label="考试院：">
+      </el-form-item>
+      <el-form-item label="专业：">
+      </el-form-item>
+      <el-form-item label="总修课程数：">
+      </el-form-item>
+      <el-form-item label="总修学分数：">
+      </el-form-item>
+      <el-form-item label="均分：">
+      </el-form-item>
+      <el-form-item label="已修课程清单：">
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="dialogVisible = false">关 闭</el-button>
+      </span>
+    </template>
+  </el-dialog>
+    </el-col>
       </el-row>
     </div>
 
-    <!-- 搜索条件 -->
-    <el-card class="search-card">
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="考生姓名">
-          <el-input v-model="searchForm.studentName" placeholder="请输入考生姓名" clearable />
-        </el-form-item>
-        <el-form-item label="考籍号">
-          <el-input v-model="searchForm.studentId" placeholder="请输入考籍号" clearable />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="searchGraduations">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
 
     <!-- 毕业申请列表 -->
     <el-card class="table-card">
@@ -43,61 +54,19 @@
       </template>
 
       <el-table :data="graduationList" stripe style="width: 100%" v-loading="loading">
-        <el-table-column prop="studentId" label="考籍号" width="120" />
-        <el-table-column prop="studentName" label="考生姓名" width="100" />
-        <el-table-column prop="major" label="专业" width="150" />
-        <!-- 申请时间已删除 -->
-        <el-table-column prop="courseCount" label="课程数" width="80" />
-        <el-table-column prop="totalCredits" label="总学分" width="80" />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="scope">
-            <el-tag :type="getGraduationStatusType(scope.row.status)">
-              {{ getGraduationStatusText(scope.row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="auditor" label="审核人" width="100" />
-        <!-- 审核时间已删除 -->
-        <!-- 操作列已删除 -->
+        <el-table-column prop="studentName" label="姓名" />
+        <el-table-column prop="studentId" label="考籍号" />
+        <el-table-column prop="studentIdNumber" label="身份证号" />
+        <el-table-column prop="gender" label="性别" />
+        <el-table-column prop="examCenterName" label="考试院" />
+        <el-table-column prop="majorName" label="专业" />
+        <el-table-column prop="numOfCourses" label="总课程" />
+        <el-table-column prop="numOfCredits" label="总学分" />
+        <el-table-column prop="averageScores" label="均分" />
       </el-table>
 
     </el-card>
 
-    <!-- 毕业申请对话框 -->
-    <el-dialog v-model="showApplyDialog" title="毕业申请" width="700px">
-      <el-form :model="applyForm" :rules="applyRules" ref="applyFormRef" label-width="120px">
-        <el-form-item label="考籍号">
-          <el-input v-model="applyForm.studentId" placeholder="请输入考籍号" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showApplyDialog = false">取消</el-button>
-          <el-button type="primary" @click="submitGraduation">提交申请</el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <!-- 资格审核对话框 -->
-    <el-dialog v-model="showAuditDialog" title="毕业资格审核" width="600px">
-      <el-form :model="auditForm" :rules="auditRules" ref="auditFormRef" label-width="120px">
-        <el-form-item label="审核结果" prop="result">
-          <el-radio-group v-model="auditForm.result">
-            <el-radio label="approve">通过</el-radio>
-            <el-radio label="reject">驳回</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="是否符合毕业条件" prop="qualified" label-width="180px">
-          <!-- 选项已移除 -->
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showAuditDialog = false">取消</el-button>
-          <el-button type="primary" @click="submitAudit">确认申请</el-button>
-        </span>
-      </template>
-    </el-dialog>
 
   </div>
 </template>
@@ -105,160 +74,63 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  Plus, 
-  Search, 
-  Document, 
-  Download
-} from '@element-plus/icons-vue'
+import { Plus, Search, Document, Download } from '@element-plus/icons-vue'
+import { getGraduationList } from '@/api/getGraduation'
+
+// 弹窗显示控制
+const dialogVisible = ref(false)
+
+// 表单数据
+const form = reactive({
+  graduationStatus: '',
+  studentName: '',
+  studentId: '',
+  idNumber: '',
+  gender: '',
+  examInstitute: '',
+  major: '',
+  courseCount: '',
+  totalCredits: '',
+  averageScore: '',
+  courseList: ''
+})
+const formRef = ref()
 
 // 响应式数据
 const loading = ref(false)
-const showApplyDialog = ref(false)
-const showAuditDialog = ref(false)
-
-const currentPage = ref(1)
-const pageSize = ref(20)
 const total = ref(0)
-
-
-// 搜索表单
-const searchForm = reactive({
-  studentName: '',
-  studentId: ''
-})
-
-// 申请表单
-const applyForm = reactive({
-  studentId: '',
-  studentName: '',
-  major: ''
-})
-
-// 审核表单
-const auditForm = reactive({
-  result: '',
-  qualified: null
-})
-
-// 表单验证规则
-const applyRules = {}
-
-const auditRules = {
-  result: [
-    { required: true, message: '请选择审核结果', trigger: 'change' }
-  ],
-  qualified: [
-    { required: true, message: '请选择是否符合毕业条件', trigger: 'change' }
-  ]
-}
-
 // 毕业申请列表
 const graduationList = ref([])
 
-
-
-// 获取毕业状态类型
-const getGraduationStatusType = (status) => {
-  const types = {
-    pending: 'warning',
-    first_approved: 'info',
-    final_approved: 'success',
-    certified: 'success',
-    rejected: 'danger'
-  }
-  return types[status] || 'info'
-}
-
-// 获取毕业状态文本
-const getGraduationStatusText = (status) => {
-  const texts = {
-    pending: '待审核',
-    first_approved: '初审通过',
-    final_approved: '终审通过',
-    certified: '已发证',
-    rejected: '已驳回'
-  }
-  return texts[status] || '未知'
-}
-
-// 搜索毕业申请
-const searchGraduations = () => {
+// 获取毕业生列表
+const fetchGraduationList = async () => {
   loading.value = true
-  setTimeout(() => {
+  try {
+    const res = await getGraduationList()
+    // 兼容 axios 响应结构
+    const list = res.data?.data || res.data || []
+    graduationList.value = list.map(item => ({
+      studentName: item.studentName,
+      studentId: item.studentId, // 正确显示考籍号
+      studentIdNumber: item.studentIdNumber, // 身份证号，如需显示可加一列
+      gender: item.gender,
+      examCenterName: item.examCenterName,
+      majorName: item.majorName,
+      numOfCourses: item.numOfCourses,
+      numOfCredits: item.numOfCredits,
+      averageScores: item.averageScores
+    }))
+    total.value = graduationList.value.length
+  } catch (e) {
+    ElMessage.error('获取毕业申请列表失败')
+  } finally {
     loading.value = false
-    ElMessage.success('搜索完成')
-  }, 1000)
-}
-
-// 重置搜索
-const resetSearch = () => {
-  Object.keys(searchForm).forEach(key => {
-    searchForm[key] = ''
-  })
-}
-
-// 查看详情
-const viewDetail = (row) => {
-  ElMessage.info(`查看毕业申请详情: ${row.studentName}`)
-}
-
-// 审核毕业申请
-const auditGraduation = (row) => {
-  showAuditDialog.value = true
-  ElMessage.info(`审核毕业申请: ${row.studentName}`)
-}
-
-// 发证
-const issueCertificate = (row) => {
-  ElMessageBox.confirm(`确定要为考生 ${row.studentName} 发放毕业证书吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    ElMessage.success('毕业证书发放成功')
-  })
-}
-
-
-
-// 搜索考生
-const searchStudent = () => {
-  // 模拟查询考生信息
-  applyForm.studentName = '张三'
-  applyForm.major = '计算机科学与技术'
-}
-
-
-
-// 提交毕业申请
-const submitGraduation = () => {
-  ElMessage.success('毕业申请提交成功')
-  showApplyDialog.value = false
-}
-
-// 提交审核
-const submitAudit = () => {
-  ElMessage.success('审核提交成功')
-  showAuditDialog.value = false
-}
-
-
-
-// 分页处理
-const handleSizeChange = (size) => {
-  pageSize.value = size
-  searchGraduations()
-}
-
-const handleCurrentChange = (page) => {
-  currentPage.value = page
-  searchGraduations()
+  }
 }
 
 // 组件挂载时初始化数据
 onMounted(() => {
-  total.value = graduationList.value.length
+  fetchGraduationList()
 })
 </script>
 

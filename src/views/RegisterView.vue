@@ -111,25 +111,33 @@
   import { useRouter } from 'vue-router'
   import { User, Lock } from '@element-plus/icons-vue';
   import { ElMessage } from 'element-plus';
-  import { register } from '@/api/getLogin.js'; // 导入注册API函数
-  import { getMajors, getExamInstitutes } from '@/api/getLogin.js'
+import { register } from '@/api/getLogin.js'; // 导入注册API函数
+import { getMajors, getExamCenters } from '@/api/getRegister.js'
   import { onMounted } from 'vue'
 
-  const majorOptions = ref([])
-  const examInstituteOptions = ref([])
+const majorOptions = ref([])
+const examInstituteOptions = ref([])
 
-  onMounted(async () => {
-    // 获取报考专业
-    const majorsRes = await getMajors()
-    if (majorsRes.status === 200) {
-      majorOptions.value = majorsRes.data.data // 根据后端返回结构调整
-    }
-    // 获取州级考试院
-    const examRes = await getExamInstitutes()
-    if (examRes.status === 200) {
-      examInstituteOptions.value = examRes.data.data
-    }
-  })
+onMounted(async () => {
+  // 获取报考专业
+  const majorsRes = await getMajors()
+  if (majorsRes.status === 200) {
+    // majorsRes.data.data 是 [{ majorCode, majorName }]
+    majorOptions.value = majorsRes.data.data.map(item => ({
+      id: item.majorCode,
+      name: item.majorName
+    }))
+  }
+  // 获取考试院
+  const examRes = await getExamCenters()
+  if (examRes.status === 200) {
+    // examRes.data.data 是 ["四川省教育考试院", ...]
+    examInstituteOptions.value = examRes.data.data.map((name, idx) => ({
+      id: idx,
+      name
+    }))
+  }
+})
 
   // 注册表单响应式数据
   const registerForm = reactive({

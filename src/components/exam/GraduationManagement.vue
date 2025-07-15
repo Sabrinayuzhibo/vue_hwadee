@@ -1,87 +1,14 @@
 <template>
   <div class="graduation-management">
-    <!-- 功能操作栏 -->
-    <div class="operation-bar">
-      <el-row :gutter="20">
-    <el-col :span="6">
-      <el-button type="primary" @click="handleGraduateVerify">
-        <el-icon><Plus /></el-icon>
-        毕业核验
-      </el-button>
-  <!-- 毕业核验表单弹窗 -->
-  <el-dialog v-model="dialogVisible" title="毕业核验" width="500px" :close-on-click-modal="false">
-    <el-form :model="form" label-width="110px">
-      <el-form-item label="毕业情况：">
-        <div v-if="form.msg !== ''" style="color: green;">
-          {{ form.msg }}
-        </div>
-        <div v-else style="color: red;">
-          未知状态
-        </div>
-      </el-form-item>
-      <el-form-item label="姓名：">
-        <span>{{ form.studentName }}</span>
-      </el-form-item>
-      <el-form-item label="考籍号：">
-        <span>{{ form.studentId }}</span>
-      </el-form-item>
-      <el-form-item label="身份证号：">
-        <span>{{ form.studentIdNumber }}</span>
-      </el-form-item>
-      <el-form-item label="性别：">
-        <span>{{ form.gender }}</span>
-      </el-form-item>
-      <el-form-item label="考试院：">
-        <span>{{ form.examCenterName }}</span>
-      </el-form-item>
-      <el-form-item label="专业：">
-        <span>{{ form.majorName }}</span>
-      </el-form-item>
-      <el-form-item label="总修课程数：">
-        <span>{{ form.numOfCourses || '无' }}</span>
-      </el-form-item>
-      <el-form-item label="总修学分数：">
-        <span>{{ form.numOfCredits || '无' }}</span>
-      </el-form-item>
-      <el-form-item label="均分：">
-        <span>{{ form.averageScores || '无' }}</span>
-      </el-form-item>
-      <el-form-item label="已修课程清单：">
-  <div v-if="form.coursesList.length > 0">
-    <el-table :data="form.coursesList" style="width: 100%">
-      <el-table-column 
-        prop="courseName" 
-        label="课程名称"
-        min-width="200"
-        :show-overflow-tooltip="true"
-      />
-    </el-table>
-  </div>
-  <div v-else>
-    暂无课程记录
-  </div>
-</el-form-item>
-    </el-form>
-    <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="dialogVisible = false">关 闭</el-button>
-      </span>
-    </template>
-  </el-dialog>
-    </el-col>
-      </el-row>
-    </div>
-
-
-    <!-- 毕业申请列表 -->
-    <el-card class="table-card">
+    <!-- 管理员端毕业申请列表 -->
+    <el-card class="table-card" v-if="userStore.role === '管理员'">
       <template #header>
         <div class="card-header">
-          <span>毕业申请列表</span>
+          <span>毕业学生列表</span>
         </div>
       </template>
 
-      <el-table :data="graduationList" stripe style="width: 100%" v-loading="loading">
+      <el-table :data="currentPageList" stripe style="width: 100%" v-loading="loading">
         <el-table-column prop="studentName" label="姓名" />
         <el-table-column prop="studentId" label="考籍号" />
         <el-table-column prop="studentIdNumber" label="身份证号" />
@@ -93,27 +20,81 @@
         <el-table-column prop="averageScores" label="均分" />
       </el-table>
 
+      <el-pagination
+        class="pagination-wrapper"
+        background
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+        :page-sizes="[10, 20, 50]"
+        :page-size="pageSize"
+        :current-page="pageNum"
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
+      />
     </el-card>
 
+    <!-- 学生端毕业核验按钮及弹窗 -->
+    <div v-else>
+      <div class="graduation-management">
+        <el-card class="table-card">
+          <template #header>
+            <div class="card-header">
+              <span>毕业信息总览</span>
+            </div>
+          </template>
 
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="毕业情况">
+              <el-tag v-if="form.averageScores >= 80" type="success">表现优异</el-tag>
+              <el-tag v-else-if="form.msg" type="warning">{{ form.msg }}</el-tag>
+              <el-tag v-else type="danger">未知状态</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="姓名">{{ form.studentName }}</el-descriptions-item>
+            <el-descriptions-item label="考籍号">{{ form.studentId }}</el-descriptions-item>
+            <el-descriptions-item label="身份证号">{{ form.studentIdNumber }}</el-descriptions-item>
+            <el-descriptions-item label="性别">
+              <el-tag :type="form.gender === '男' ? 'primary' : 'danger'" effect="plain">{{ form.gender }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="考试院">{{ form.examCenterName }}</el-descriptions-item>
+            <el-descriptions-item label="专业">{{ form.majorName }}</el-descriptions-item>
+            <el-descriptions-item label="总修课程数">{{ form.numOfCourses || '无' }}</el-descriptions-item>
+            <el-descriptions-item label="总修学分数">{{ form.numOfCredits || '无' }}</el-descriptions-item>
+            <el-descriptions-item label="均分">{{ form.averageScores || '无' }}</el-descriptions-item>
+          </el-descriptions>
+
+          <el-divider content-position="left">已修课程清单</el-divider>
+          <el-table :data="currentCourses" style="width: 100%" v-if="form.coursesList.length > 0">
+            <el-table-column type="index" label="#" width="50" />
+            <el-table-column prop="courseName" label="课程名称" min-width="200" :show-overflow-tooltip="true" />
+          </el-table>
+          <el-pagination
+            class="pagination-wrapper"
+            background
+            layout="prev, pager, next"
+            :total="form.coursesList.length"
+            :page-size="coursePageSize"
+            :current-page="coursePageNum"
+            @current-change="handleCoursePageChange"
+            v-if="form.coursesList.length > coursePageSize"
+          />
+          <div v-else style="color: #999;">暂无课程记录</div>
+        </el-card>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Document, Download } from '@element-plus/icons-vue'
-import { getGraduationList } from '@/api/getGraduation'
-import { postGraduateVerify } from '@/api/getGraduation'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
+import { getGraduationList, postGraduateVerify } from '@/api/getGraduation'
 import { useUserStore } from '@/store/user'
 
-// 弹窗显示控制
-const dialogVisible = ref(false)
-
-// 当前登录用户信息（假设有 userStore，实际按你的项目获取用户名）
 const userStore = useUserStore()
 
-// 毕业核验表单数据
+const dialogVisible = ref(false)
+
 const form = reactive({
   msg: '',
   studentName: '',
@@ -129,23 +110,21 @@ const form = reactive({
   coursesList: []
 })
 
-// 毕业核验按钮点击
+// 学生端毕业核验
 const handleGraduateVerify = async () => {
   dialogVisible.value = true
-  // 获取当前登录用户姓名
   const name = userStore.name
-  const role = userStore.role
-  console.log('当前用户角色:', role)
-  console.log('当前用户姓名:', name)
   if (!name) {
     ElMessage.error('未获取到当前用户姓名')
     return
   }
   try {
     const res = await postGraduateVerify(name)
+    console.log('postGraduateVerify 返回原始数据:', res.data)
     if (res.data && res.data.data) {
       const data = res.data.data
-      // 填充表单
+      console.log('毕业核验接口 data:', data)
+      console.log('原始 coursesList:', data.coursesList)
       form.msg = data.msg || ''
       form.studentName = data.studentName || ''
       form.studentId = data.studentId || ''
@@ -157,9 +136,15 @@ const handleGraduateVerify = async () => {
       form.numOfCourses = data.numOfCourses || ''
       form.numOfCredits = data.numOfCredits || ''
       form.averageScores = data.averageScores || ''
-      form.coursesList = data.coursesList?.map(courseName => ({
-        courseName: courseName,
-      })) || []
+      form.coursesList = Array.isArray(data.coursesList)
+        ? data.coursesList.map(course => {
+            return typeof course === 'string'
+              ? { courseName: course }
+              : course && typeof course === 'object' && 'courseName' in course
+              ? { courseName: course.courseName }
+              : { courseName: '' }
+          })
+        : []
     } else {
       ElMessage.error(res.data?.msg || '未查到毕业信息')
     }
@@ -168,23 +153,50 @@ const handleGraduateVerify = async () => {
   }
 }
 
-// 响应式数据
+// 管理员端分页及数据
 const loading = ref(false)
-const total = ref(0)
-// 毕业申请列表
 const graduationList = ref([])
+const total = ref(0)
+const pageSize = ref(10)
+const pageNum = ref(1)
 
-// 获取毕业生列表
+const currentPageList = computed(() => {
+  const start = (pageNum.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return graduationList.value.slice(start, end)
+})
+
+const handlePageChange = (val) => {
+  pageNum.value = val
+}
+
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  pageNum.value = 1
+}
+
+const coursePageSize = ref(10)
+const coursePageNum = ref(1)
+
+const currentCourses = computed(() => {
+  const start = (coursePageNum.value - 1) * coursePageSize.value
+  const end = start + coursePageSize.value
+  return form.coursesList.slice(start, end)
+})
+
+const handleCoursePageChange = (val) => {
+  coursePageNum.value = val
+}
+
 const fetchGraduationList = async () => {
   loading.value = true
   try {
     const res = await getGraduationList()
-    // 兼容 axios 响应结构
     const list = res.data?.data || res.data || []
     graduationList.value = list.map(item => ({
       studentName: item.studentName,
-      studentId: item.studentId, // 正确显示考籍号
-      studentIdNumber: item.studentIdNumber, // 身份证号，如需显示可加一列
+      studentId: item.studentId,
+      studentIdNumber: item.studentIdNumber,
       gender: item.gender,
       examCenterName: item.examCenterName,
       majorName: item.majorName,
@@ -200,9 +212,11 @@ const fetchGraduationList = async () => {
   }
 }
 
-// 组件挂载时初始化数据
 onMounted(() => {
   fetchGraduationList()
+  if (userStore.role !== '管理员') {
+    handleGraduateVerify()
+  }
 })
 </script>
 
@@ -210,75 +224,27 @@ onMounted(() => {
 .graduation-management {
   padding: 20px;
 }
-
 .operation-bar {
   margin-bottom: 20px;
 }
-
-.search-card {
-  margin-bottom: 20px;
-}
-
-.search-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
 .table-card {
   margin-bottom: 20px;
 }
-
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-}
-
 .pagination-wrapper {
   display: flex;
   justify-content: center;
   margin-top: 20px;
 }
-
-.chart-container {
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-}
-
-.chart-placeholder {
-  color: #909399;
-  font-size: 14px;
-}
-
-.upload-tip {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 5px;
-}
-
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .search-form {
-    flex-direction: column;
-  }
-  
   .card-header {
     flex-direction: column;
     gap: 10px;
-  }
-  
-  .header-actions {
-    justify-content: center;
   }
 }
 </style>

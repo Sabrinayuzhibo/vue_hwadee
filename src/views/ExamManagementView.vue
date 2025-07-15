@@ -18,7 +18,7 @@
           <el-dropdown>
             <span class="user-dropdown">
               <el-avatar :size="32" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
-              <span class="username">管理员</span>
+              <span class="username">{{user_role}}</span>
               <el-icon><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
@@ -136,7 +136,9 @@ import CourseReplacement from '../components/exam/CourseReplacement.vue'
 import TransferManagement from '../components/exam/TransferManagement.vue'
 import GraduationManagement from '../components/exam/GraduationManagement.vue'
 import LogManagement from '../components/exam/LogManagement.vue'
-
+import {useUserStore} from '@/store/user'
+const userStore = useUserStore()
+const user_role=userStore.role
 const router = useRouter()
 
 // 响应式数据

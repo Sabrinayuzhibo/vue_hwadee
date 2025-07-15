@@ -45,7 +45,7 @@
         <el-form-item>
           <el-button type="primary" @click="searchStudents">查询</el-button>
           <el-button @click="resetSearch">重置</el-button>
-          <el-button type="success" @click="fetchAllStudents" style="margin-left:1000px;">查询全部学生</el-button>
+          <el-button v-if="userStore.role === '管理员'" type="success" @click="fetchAllStudents" style="margin-left:1000px;">查询全部学生</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -408,6 +408,8 @@ const currentScoreStudent = ref(null) // 当前查看成绩的学生
 // 学生详情相关
 const showStudentDetailDialog = ref(false) // 学生详情对话框
 const currentDetailStudent = ref(null) // 当前查看详情的学生
+// 用户角色
+const userStore=useUserStore()
 
 // 搜索表单
 const searchForm = reactive({
@@ -683,7 +685,7 @@ const fetchAllStudents = async () => {
     const data = res.data.data
     studentList.value = Array.isArray(data.records) ? data.records : []
     total.value = data.total || 0
-    const userStore=useUserStore()
+  
     ElMessage.success(`${userStore.role}查询完成，共找到 ${total.value} 条记录`)
     getStatistics()
   } catch (error) {

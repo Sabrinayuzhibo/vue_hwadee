@@ -100,7 +100,7 @@
 		],
 		password: [
 			{ required: true, message: '请输入密码', trigger: 'blur' },
-			{ min: 6, max: 20, message: '密码长度在6-20个字符', trigger: 'blur' }
+			{ min: 6, max: 40, message: '密码长度在6-40个字符', trigger: 'blur' }
 		]
 	});
 

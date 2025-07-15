@@ -1024,7 +1024,11 @@ const drawCharts = () => {
   }
   majorChart.setOption({
     title: { text: '专业分布' },
-    xAxis: { type: 'category', data: majorNames },
+    xAxis: { 
+      type: 'category', 
+      data: majorNames,
+      axisLabel: { show: false } // 隐藏横轴标签
+    },
     yAxis: { type: 'value' },
     series: [{
       data: majorCounts,

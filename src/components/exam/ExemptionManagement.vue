@@ -17,7 +17,7 @@
           </el-button>
         </el-col>
         <!-- <el-col :span="6">
-          <el-button type="warning" @click="showAuditDialog = true">
+          <el-button type="warning" @click="showAuditDialog true">
             <el-icon><Search /></el-icon>
             审核管理
           </el-button>

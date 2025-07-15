@@ -106,17 +106,17 @@
   
   <script setup>
   // 导入Vue 3 Composition API相关函数
-  import { ref, reactive } from 'vue';
+  import { ref, reactive, onMounted } from 'vue';
   import axios from 'axios';
   import { useRouter } from 'vue-router'
   import { User, Lock } from '@element-plus/icons-vue';
   import { ElMessage } from 'element-plus';
 import { register } from '@/api/getRegister.js'; // 导入注册API函数
 import { getMajors, getExamCenters } from '@/api/getRegister.js'
-  import { onMounted } from 'vue'
-
+import { fetchAllMajors } from '@/api/getCommon.js'
 const majorOptions = ref([])
 const examInstituteOptions = ref([])
+const majorList = ref([])
 
 onMounted(async () => {
   // 获取报考专业
@@ -137,6 +137,8 @@ onMounted(async () => {
       name
     }))
   }
+
+ 
 })
 
   // 注册表单响应式数据
@@ -202,25 +204,37 @@ onMounted(async () => {
       // 重置错误信息
       errorMsg.value = '';
       loading.value = true;
-      const submit_data={
-        name:registerForm.name,
-        idNumber:registerForm.idCard,
-        password:registerForm.password,
-        majorCode:registerForm.major,
-        examCenterName:registerForm.examInstitute,
-        gender:registerForm.gender,
-        birthDate:registerForm.birthDate,
-        phone:registerForm.phone,
-        address:registerForm.address
+
+      const majorRes = await fetchAllMajors()
+      console.log( majorRes)
+      if (majorRes.status === 200) {
+        majorList.value = majorRes.data.data
       }
-  
+      console.log(majorList.value) 
+      const getMajorCodeByName = (name) => {
+        const found = majorList.value.find(item => item.majorName === name)
+        return found ? found.majorCode : ''
+      }
+
+      const submit_data = {
+        name: registerForm.name,
+        idNumber: registerForm.idCard,
+        password: registerForm.password,
+        majorCode: getMajorCodeByName(registerForm.major), // 这里做转换
+        examCenterName: registerForm.examInstitute,
+        gender: registerForm.gender,
+        birthDate: registerForm.birthDate ? registerForm.birthDate.toISOString().slice(0, 10) : '',
+        phone: registerForm.phone,
+        address: registerForm.address
+      }
+      console.log(submit_data)
       // 调用注册API
       const response = await register(submit_data);
-  
+      console.log(response)
       // 处理注册响应
-      if (response.status === 200) {
+      if (response.data && response.data.msg === "学生注册成功") {
         ElMessage.success({
-          message: '注册成功',
+          message: '学生注册成功',
           duration: 2000
         });
         // 注册成功后延迟跳转到登录页面
@@ -228,7 +242,7 @@ onMounted(async () => {
           router.push('/login');
         }, 1000);
       } else {
-        errorMsg.value = response.data.message || '注册失败，请重试';
+        errorMsg.value = response.data?.message || '注册失败，请重试';
       }
     } catch (error) {
       // 错误处理逻辑与登录页面保持一致

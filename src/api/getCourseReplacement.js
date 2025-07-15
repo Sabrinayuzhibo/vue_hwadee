@@ -96,3 +96,27 @@ export const courseAdminLoad = ({ key, pageNum = 1, pageSize = 10 }) => {
     data: { key, pageNum, pageSize }
   })
 }
+
+// 提交管理员审批（对应后端 /application/course/admin-apply）
+export const submitAdminApproval = (data) => {
+  return request({
+    url: '/application/course/admin-apply',
+    method: 'post',
+    data: {
+      applicationId: data.applicationId,
+      status: data.status,
+      reviewReason: data.reviewReason || '',
+      adminName: data.adminName || ''
+    }
+  })
+}
+
+
+// 管理员根据免考规则自动审阅
+export const autoAdminApply = (name) => {
+  return request({
+        url: '/application/course/student-load',
+        method: 'post',
+        data: { name }
+    })
+}

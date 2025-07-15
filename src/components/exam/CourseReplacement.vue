@@ -1,33 +1,33 @@
 <template>
   <div class="course-replacement">
     <!-- 顶部按钮 -->
-    <div style="margin-bottom: 16px;">
+    <div class="top-buttons" style="margin-bottom: 24px;">
       
         <el-button type="primary" @click="showManualDialog = true">
           {{ userStore.role === '管理员' ? '手动审批顶替' : '手动申请顶替' }}
         </el-button>
       
-      <el-button v-if="userStore.role === '管理员'" type="primary" style="margin-left: 8px;">自动审批顶替</el-button>
+      <el-button v-if="userStore.role === '管理员'" type="primary" style="margin-left: 8px;" @click="handleAutoApproval">自动审批顶替</el-button>
     </div>
 
     <!-- 课程顶替规则管理 -->
     <template v-if="userStore.role === '管理员'">
-      <el-card>
+      <el-card class="card-container">
         <template #header>
           <div class="card-header">
             <span>课程顶替规则管理</span>
-            <el-button type="primary" @click="showRuleDialog = true" style="margin-left: 12px;">
+            <el-button type="primary" @click="showRuleDialog = true" class="header-button">
               <el-icon><Plus /></el-icon>
               新增顶替规则
             </el-button>
           </div>
         </template>
         <el-table :data="replacementList" stripe style="width: 100%">
-          <el-table-column prop="oldCourseName" label="原课程名称" width="150" />
-          <el-table-column prop="newCourseName" label="新课程名称" width="150" />
-          <el-table-column prop="majorName" label="适用专业" width="150" />
+          <el-table-column prop="oldCourseName" label="原课程名称" />
+          <el-table-column prop="newCourseName" label="新课程名称" />
+          <el-table-column prop="majorName" label="适用专业" />
           <!-- 移除生效时间和失效时间列 -->
-          <el-table-column label="操作" width="150">
+          <el-table-column label="操作">
             <template #default="scope">
               <el-button size="small" type="danger" @click="deleteRule(scope.row)">删除</el-button>
             </template>
@@ -68,16 +68,26 @@
     </el-dialog>
 
     <!-- 顶替记录 -->
-   <el-card class="mt-4">
+   <el-card class="mt-4 card-container">
       <template #header><span>顶替记录</span></template>
-      <el-table :data="recordList" stripe :row-class-name="statusRowClass">
+      <el-table :data="recordList" stripe style="width: 100%">
         <el-table-column prop="applicationId" label="申请编号" />
         <el-table-column prop="oldCourseCode" label="原课程代码" />
         <el-table-column prop="oldCourseName" label="原课程名称" />
         <el-table-column prop="newCourseCode" label="新课程代码" />
         <el-table-column prop="newCourseName" label="新课程名称" />
         <el-table-column prop="reason" label="申请理由" />
-        <el-table-column prop="status" label="审核状态" />
+        <el-table-column label="审核状态">
+          <template #default="scope">
+            <el-tag
+              :type="getStatusTagType(scope.row.status)"
+              disable-transitions
+              effect="plain"
+            >
+              {{ scope.row.status }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="reviewReason" label="审核意见" />
         <el-table-column prop="updateTime" label="更新时间" />
       </el-table>
@@ -99,7 +109,19 @@
       <el-form :model="manualForm" label-width="100px">
         <template v-if="userStore.role === '管理员'">
           <el-form-item label="申请编号">
-            <el-input v-model="manualForm.applicationId" />
+            <el-select
+              v-model="manualForm.applicationId"
+              placeholder="请选择申请编号"
+              filterable
+              @change="onApplicationIdChange"
+            >
+              <el-option
+                v-for="item in recordList"
+                :key="item.applicationId"
+                :label="item.applicationId"
+                :value="item.applicationId"
+              />
+            </el-select>
           </el-form-item>
           <el-form-item label="审批状态">
             <el-select v-model="manualForm.status" placeholder="请选择审批状态">
@@ -111,13 +133,18 @@
           <el-form-item label="审核意见">
             <el-input v-model="manualForm.reviewReason" type="textarea" rows="2" />
           </el-form-item>
-          <el-form-item label="审批人姓名">
-            <el-input v-model="manualForm.adminName" />
-          </el-form-item>
         </template>
         <template v-else>
-          <el-form-item label="原课程名称"><el-input v-model="manualForm.oldCourseName" /></el-form-item>
-          <el-form-item label="新课程名称"><el-input v-model="manualForm.newCourseName" /></el-form-item>
+          <el-form-item label="原课程名称">
+            <el-select v-model="manualForm.oldCourseName" filterable placeholder="请选择原课程">
+              <el-option v-for="item in courseOptions" :key="item.courseId" :label="item.courseName" :value="item.courseName" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="新课程名称">
+            <el-select v-model="manualForm.newCourseName" filterable placeholder="请选择新课程">
+              <el-option v-for="item in courseOptions" :key="item.courseId" :label="item.courseName" :value="item.courseName" />
+            </el-select>
+          </el-form-item>
           <el-form-item label="申请理由"><el-input v-model="manualForm.reason" type="textarea" rows="2" /></el-form-item>
         </template>
       </el-form>
@@ -136,8 +163,8 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
-import { fetchReplacementRules, createReplacementRule, deleteReplacementRule, fetchCourseList, fetchMajorList, autoMatchReplacement, submitReplacementRequest
-  ,courseStudentLoad, courseAdminLoad
+import { fetchReplacementRules, createReplacementRule, deleteReplacementRule, fetchCourseList, fetchMajorList, autoMatchReplacement, submitReplacementRequest, submitAdminApproval
+  ,courseStudentLoad, courseAdminLoad, autoAdminApply
  } from '@/api/getCourseReplacement.js'
 
 const replacementList = ref([])
@@ -212,13 +239,14 @@ const submitManual = async () => {
   try {
     if (userStore.role === '管理员') {
       // 管理员审批提交逻辑（示例，需根据实际接口调整）
-      // 假设有对应的审批接口，暂时用 submitReplacementRequest 替代
-      await submitReplacementRequest({
+      // 假设有对应的审批接口，暂时用 submitAdminApproval 替代
+      const ret = await submitAdminApproval({
         applicationId: manualForm.applicationId,
         status: manualForm.status,
         reviewReason: manualForm.reviewReason,
-        adminName: serStore.name,
+        adminName: userStore.name,
       })
+      console.log(ret.data)
       ElMessage.success('审批提交成功')
     } else {
       await submitReplacementRequest({
@@ -229,9 +257,10 @@ const submitManual = async () => {
       })
       ElMessage.success('课程替换申请提交成功')
     }
-    showManualDialog.value = false
+    await getRecords()
+    recordList.value = [...recordList.value]
     Object.keys(manualForm).forEach(k => manualForm[k] = '')
-    getRecords()
+    showManualDialog.value = false
   } catch (e) {
     ElMessage.error(e?.response?.data?.msg || '提交失败，请稍后再试')
   }
@@ -262,11 +291,49 @@ const getRecords = async () => {
   }
 }
 
-const statusRowClass = ({ row }) => {
-  if (row.status === '通过') return 'row-success'
-  if (row.status === '驳回') return 'row-danger'
-  if (row.status === '待审核') return 'row-pending'
-  return ''
+const statusCellStyle = ({ row, column }) => {
+  if (column.property !== 'status') return {}
+
+  if (row.status === '通过') {
+    return { backgroundColor: '#e6f7e6', color: '#2f855a' }
+  }
+  if (row.status === '驳回') {
+    return { backgroundColor: '#fdeaea', color: '#c53030' }
+  }
+  if (row.status === '待审核') {
+    return { backgroundColor: '#fff8e1', color: '#b7791f' }
+  }
+  return {}
+}
+
+const getStatusTagType = (status) => {
+  switch (status) {
+    case '通过':
+      return 'success'
+    case '驳回':
+      return 'danger'
+    case '待审核':
+      return 'warning'
+    default:
+      return ''
+  }
+}
+
+const onApplicationIdChange = (val) => {
+  const selected = recordList.value.find(item => item.applicationId === val)
+  if (selected) {
+    manualForm.oldCourseName = selected.oldCourseName || ''
+    manualForm.newCourseName = selected.newCourseName || ''
+    manualForm.status = selected.status || ''
+    manualForm.reviewReason = selected.reviewReason || ''
+    manualForm.adminName = selected.adminName || ''
+  } else {
+    manualForm.oldCourseName = ''
+    manualForm.newCourseName = ''
+    manualForm.status = ''
+    manualForm.reviewReason = ''
+    manualForm.adminName = ''
+  }
 }
 
 onMounted(() => {
@@ -275,11 +342,26 @@ onMounted(() => {
   getCourseOptions()
   getMajorOptions()
 })
+
+// 自动审批顶替
+const handleAutoApproval = async () => {
+  try {
+    const res = await autoAdminApply(userStore.name)
+    console.log('自动审批结果：', res.data)
+    ElMessage.success('自动审批完成')
+    await getRecords()
+    recordList.value = [...recordList.value]
+  } catch (e) {
+    ElMessage.error('自动审批失败')
+  }
+}
 </script>
 
 <style scoped>
 .course-replacement {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .card-header {
@@ -288,16 +370,32 @@ onMounted(() => {
   align-items: center;
 }
 
-.row-success {
-  background-color: #f0f9eb;
+.header-button {
+  margin-left: 12px;
+  padding: 6px 12px;
+  font-size: 14px;
 }
-.row-danger {
-  background-color: #fef0f0;
-}
-.row-pending {
-  background-color: #fdf6ec;
-}
+
 .mt-2 {
   margin-top: 12px;
+}
+
+.mt-4 {
+  margin-top: 24px;
+}
+
+.card-container {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+/* 顶部按钮容器间距 */
+.top-buttons {
+  margin-bottom: 24px;
+}
+
+/* 响应式表格边距，保持间距合理 */
+.el-table {
+  margin-bottom: 16px;
 }
 </style>

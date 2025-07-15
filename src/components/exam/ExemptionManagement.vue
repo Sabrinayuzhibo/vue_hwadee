@@ -17,7 +17,7 @@
           </el-button>
         </el-col>
         <!-- <el-col :span="6">
-          <el-button type="warning" @click="showAuditDialog true">
+          <el-button type="warning" @click="showAuditDialog = true">
             <el-icon><Search /></el-icon>
             审核管理
           </el-button>
@@ -478,36 +478,12 @@
       </template>
     </el-dialog>
 
-    <!-- 审核对话框 -->
-    <el-dialog v-model="showAuditDialog" title="免考审核" width="600px">
-      <el-form :model="auditForm" :rules="auditRules" ref="auditFormRef" label-width="100px">
-        <el-form-item label="审核结果" prop="result">
-          <el-radio-group v-model="auditForm.result">
-            <el-radio label="approve">通过</el-radio>
-            <el-radio label="reject">驳回</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="审核意见" prop="comment">
-          <el-input 
-            v-model="auditForm.comment" 
-            type="textarea" 
-            :rows="4"
-            placeholder="请填写审核意见"
-          />
-        </el-form-item>
-        <el-form-item label="审核级别" prop="level">
-          <el-select v-model="auditForm.level" placeholder="请选择审核级别">
-            <el-option label="市州初审" value="city" />
-            <el-option label="省考试院终审" value="province" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showAuditDialog = false">取消</el-button>
-          <el-button type="primary" @click="submitAudit">提交审核</el-button>
-        </span>
-      </template>
+    <!-- 审核弹窗 -->
+    <el-dialog v-model="showCustomAuditDialog" :title="currentAuditRow ? `审核申请 - ${currentAuditRow.studentName}` : '审核申请'" width="400px">
+      <div style="text-align:center; margin: 30px 0;">
+        <el-button type="danger" @click="handleAudit('rejected')">驳回</el-button>
+        <el-button type="primary" @click="handleAudit('approved')">通过</el-button>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -714,6 +690,36 @@ const auditForm = reactive({
   comment: '',
   level: ''
 })
+
+// 审核弹窗相关响应式数据
+const showCustomAuditDialog = ref(false)
+const currentAuditRow = ref(null)
+
+// 打开自定义审核弹窗
+const auditExemption = (row) => {
+  currentAuditRow.value = row
+  showCustomAuditDialog.value = true
+}
+
+// 处理审核操作
+const handleAudit = async (status) => {
+  if (!currentAuditRow.value) return
+  const auditData = {
+    id: currentAuditRow.value.id || currentAuditRow.value.studentId,
+    status: status, // 'approved' or 'rejected'
+    description: '', // 无审核意见
+    studentName: currentAuditRow.value.studentName
+  }
+  try {
+    await auditExemptionAPI(auditData)
+    ElMessage.success(`审核${status === 'approved' ? '通过' : '驳回'}成功`)
+    showCustomAuditDialog.value = false
+    await loadExemptionList()
+  } catch (error) {
+    ElMessage.error('审核失败')
+    console.error('Audit error:', error)
+  }
+}
 
 // 表单验证规则
 const applyRules = {
@@ -1393,52 +1399,6 @@ const submitExemption = async () => {
   }
 }
 
-// 审核免考申请
-const auditExemption = async (row) => {
-  try {
-    // 显示审核对话框
-    ElMessageBox.prompt('请输入审核意见', `审核申请 - ${row.studentName}`, {
-      confirmButtonText: '通过',
-      cancelButtonText: '驳回',
-      inputPlaceholder: '请输入审核意见',
-      inputType: 'textarea',
-      inputValidator: (value) => {
-        if (!value || value.trim() === '') {
-          return '请输入审核意见'
-        }
-        return true
-      }
-    }).then(async ({ value, action }) => {
-      const auditData = {
-        id:  row.studentId,
-        status: action === 'confirm' ? 'approved' : 'rejected',
-        description: value,
-        studentName: row.studentName // 从用户状态获取
-      }
-      
-      await auditExemptionAPI(auditData)
-      
-      ElMessage.success(`审核${action === 'confirm' ? '通过' : '驳回'}成功`)
-      
-      // 重新加载列表
-      await loadExemptionList()
-      
-    }).catch(() => {
-      ElMessage.info('已取消审核')
-    })
-    
-  } catch (error) {
-    ElMessage.error('审核失败')
-    console.error('Audit error:', error)
-  }
-}
-
-// 提交审核
-const submitAudit = () => {
-  ElMessage.success('审核提交成功')
-  showAuditDialog.value = false
-}
-
 // 编辑政策
 const editPolicy = (row) => {
   ElMessage.info(`编辑政策: ${row.policyName}`)
@@ -1481,9 +1441,7 @@ const savePolicy = async () => {
     
     // 创建新政策对象
     const newPolicy = {
-      ruleId: Date.now(), // 临时ID，实际应该由后端生成
       name: policyForm.policyName,
-      courseCode: policyForm.courseCode,
       courseName: policyForm.courseName,
       description: policyForm.exemptionCondition
     }

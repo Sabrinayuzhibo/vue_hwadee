@@ -56,3 +56,43 @@ export const deleteReplacementRule = (row) => {
     })
 }
 
+// 自动加载课程替换建议（对应后端 /application/course/auto-student-load）
+export const autoMatchReplacement = (name) => {
+    return request({
+        url: '/application/course/auto-student-load',
+        method: 'post',
+        data: { name }
+    })
+}
+
+// 提交课程替换申请（对应后端 /application/course/student-apply）
+export const submitReplacementRequest = (data) => {
+  return request({
+    url: '/application/course/student-apply',
+    method: 'post',
+    data: {
+      studentName: data.studentName,       // 学生姓名
+      oldCourseName: data.oldCourseName,   // 原课程名称
+      newCourseName: data.newCourseName,   // 新课程名称
+      reason: data.reason || ''            // 替换理由
+    }
+  })
+}
+
+// 提交课程替换申请（对应后端 /application/course/student-load）
+export const courseStudentLoad = (name) => {
+  return request({
+        url: '/application/course/student-load',
+        method: 'post',
+        data: { name }
+    })
+}
+
+// 提交课程替换申请（对应后端 /application/course/admin-load）
+export const courseAdminLoad = ({ key, pageNum = 1, pageSize = 10 }) => {
+  return request({
+    url: '/application/course/admin-load',
+    method: 'post',
+    data: { key, pageNum, pageSize }
+  })
+}

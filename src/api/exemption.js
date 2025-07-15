@@ -170,11 +170,15 @@ export const getMaterialListAPI =
  */
 export const getPolicyListAPI =
     (params) => {
-      return request({url: '/exemption/policy/list', method: 'get', params})
+      return request({url: '/exemption-rule/all', method: 'get', params})
     }
 
 /**
  * 创建免考政策
+ * name: policyForm.policyName,
+ * courseName: policyForm.courseName,
+ * description: policyForm.exemptionCondition
+ *
  */
 export const createPolicyAPI =
     (data) => {

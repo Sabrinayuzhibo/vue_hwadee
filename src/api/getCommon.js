@@ -40,7 +40,19 @@ export function fetchAdminCount() {
   })
 }
 
-// 获取所有专业信息（VO 格式）
+// * 返回值示例：
+// * {
+// *   "code": 100000,
+// *   "msg": null,
+// *   "data": [
+// *     {
+// *       "majorCode": "CS001",
+// *       "majorName": "计算机科学与技术"
+// *     },
+// *     ...
+// *   ]
+// * }
+// */
 export function fetchAllMajors() {
   return request({
     url: '/get-majors',

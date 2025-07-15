@@ -128,7 +128,7 @@
 					duration: 2000
 				});
 				console.log(response)
-				const role=response.data.msg
+				const role = (response.data.msg === "学生" || response.data.msg === "管理员") ? response.data.msg : "none";
 				console.log(role);
 
 		

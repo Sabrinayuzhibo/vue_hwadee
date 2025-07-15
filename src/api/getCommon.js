@@ -39,3 +39,12 @@ export function fetchAdminCount() {
     method: 'get'
   })
 }
+
+// 获取所有专业信息（VO 格式）
+export function fetchAllMajors() {
+  return request({
+    url: '/get-majors',
+    method: 'get'
+  })
+}
+

@@ -186,26 +186,26 @@
     </el-dialog>
 
     <!-- 统计分析对话框 -->
-    <el-dialog v-model="showStatisticsDialog" title="统计分析" width="800px">
+    <el-dialog v-model="showStatisticsDialog" title="统计分析" width="1500px">
       <el-row :gutter="20">
-        <el-col :span="12">
+        <el-col :span="15">
           <el-card>
-            <template #header>专业分布</template>
-            <div id="major-chart" style="height:300px;width:100%"></div>
+            <template #header>年龄分布</template>
+            <div id="age-chart" style="height:200px;width:100%"></div>
           </el-card>
         </el-col>
-        <el-col :span="12">
+        <el-col :span="9">
           <el-card>
             <template #header>性别比例</template>
-            <div id="gender-chart" style="height:300px;width:100%"></div>
+            <div id="gender-chart" style="height:200px;width:100%"></div>
           </el-card>
         </el-col>
       </el-row>
       <el-row :gutter="20" style="margin-top: 20px;">
         <el-col :span="24">
           <el-card>
-            <template #header>年龄分布</template>
-            <div id="age-chart" style="height:300px;width:100%"></div>
+            <template #header>专业分布</template>
+            <div id="major-chart" style="height:400px;width:100%"></div>
           </el-card>
         </el-col>
       </el-row>
@@ -374,10 +374,12 @@ import {
 import { createStudentArchive, searchStudents as searchStudentsAPI, updateNonKeyStudentInfo, submitKeyInfoChange } from '@/api/getStudent.js'
 import ScoreManagement from './ScoreManagement.vue'
 import * as echarts from 'echarts'
-import { getStudentList ,getStudentListNoPage} from '@/api/getStudent.js'
+import { getStudentList} from '@/api/getStudent.js'
 import {loadStudentByIdCardNumber,loadStudentByStudentId,loadStudentByName} from '@/api/getStudent.js'
 import{ loadStudentsByMajor, loadStudentsByGender, loadStudentsByExamCenterName } from'@/api/getStudent.js'
 import { useUserStore } from '@/store/user'
+import { toRaw } from 'vue'
+import { fetchAllMajors } from '@/api/getCommon.js'
 // 响应式数据
 const loading = ref(false)
 const showCreateDialog = ref(false)
@@ -495,6 +497,8 @@ const keyInfoRules = {
 // 学生列表数据
 const studentList = ref([])
 
+// 全部学生列表数据(画图)
+const allStudentListForChart = ref([])
 // 获取状态类型
 const getStatusType = (status) => {
   const types = {
@@ -956,9 +960,22 @@ let ageChart = null
 
 // 拉取统计数据
 const fetchStatistics = async () => {
-  const res = await getStudentListNoPage({})
-  if (res.status === 200) {
-    studentList.value = res.data.data
+  const res = await getStudentList({
+    pageNum: 1,
+    pageSize: 100000
+  })
+  const res2 = await fetchAllMajors()
+  if (res.status === 200 && res2.status === 200) {
+    const majorList = res2.data.data
+    const majorMap = {}
+    majorList.forEach(item => {
+      majorMap[item.majorCode] = item.majorName
+    })
+    allStudentListForChart.value = res.data.data.records.map(student => ({
+      ...student,
+      majorName: majorMap[student.majorCode] || student.majorCode
+    }))
+    console.log(allStudentListForChart.value)
     await nextTick()
     drawCharts()
   }
@@ -968,15 +985,17 @@ const fetchStatistics = async () => {
 const drawCharts = () => {
   // 1. 专业分布
   const majorMap = {}
-  studentList.value.forEach(s => {
-    majorMap[s.major] = (majorMap[s.major] || 0) + 1
+  allStudentListForChart.value.forEach(s => {
+    // 用 majorName 统计
+    const name = s.majorName || s.majorCode
+    majorMap[name] = (majorMap[name] || 0) + 1
   })
   const majorNames = Object.keys(majorMap)
   const majorCounts = Object.values(majorMap)
 
   // 2. 性别比例
   const genderMap = { 男: 0, 女: 0 }
-  studentList.value.forEach(s => {
+  allStudentListForChart.value.forEach(s => {
     if (s.gender === '男' || s.gender === '女') {
       genderMap[s.gender]++
     }
@@ -986,7 +1005,7 @@ const drawCharts = () => {
   // 3. 年龄分布
   const ageMap = {}
   const nowYear = new Date().getFullYear()
-  studentList.value.forEach(s => {
+  allStudentListForChart.value.forEach(s => {
     if (s.birthDate) {
       const year = new Date(s.birthDate).getFullYear()
       const age = nowYear - year
@@ -1007,7 +1026,20 @@ const drawCharts = () => {
     title: { text: '专业分布' },
     xAxis: { type: 'category', data: majorNames },
     yAxis: { type: 'value' },
-    series: [{ data: majorCounts, type: 'bar' }]
+    series: [{
+      data: majorCounts,
+      type: 'bar',
+      label: {
+        show: true,           // 显示标签
+        position: 'top',      // 在柱子顶部
+        formatter: function(params) {
+          // params.name 是专业名，params.value 是数量
+          return params.name; // 只显示专业名
+          // return params.value; // 只显示数量
+          // return params.name + '\\n' + params.value; // 专业名+数量
+        }
+      }
+    }]
   })
 
   // 渲染性别比例饼图

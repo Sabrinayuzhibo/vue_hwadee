@@ -76,8 +76,10 @@
 	import { User, Lock } from '@element-plus/icons-vue';
 	import { ElMessage } from 'element-plus';
 	import { login } from '@/api/getLogin.js'; // 导入登录API函数
+	import { useUserStore } from '@/store/user'
 
 	const router = useRouter(); // 增加这一行
+	const userStore = useUserStore()
 
 	// 响应式数据
 	const loginForm = reactive({
@@ -125,7 +127,9 @@
 					message: '登录成功!',
 					duration: 2000
 				});
-				
+				console.log(response)
+				const role=response.data.msg
+				console.log(role);
 				//  // 保存登录状态到本地存储
 				// localStorage.setItem('token', response.data.data.token) // 保存token
 				// localStorage.setItem('userInfo', JSON.stringify(response.data.data.user)) // 保存用户信息
@@ -135,6 +139,7 @@
 				setTimeout(() => {
 					// 跳转到主页
 					router.push('/')
+					userStore.setRole(role) // 登录成功后
 				}, 1000);
 			} else {
 				// API返回的错误处理

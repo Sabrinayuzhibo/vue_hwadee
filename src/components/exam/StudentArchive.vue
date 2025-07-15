@@ -377,6 +377,7 @@ import * as echarts from 'echarts'
 import { getStudentList } from '@/api/getStudent.js'
 import {loadStudentByIdCardNumber,loadStudentByStudentId,loadStudentByName} from '@/api/getStudent.js'
 import{ loadStudentsByMajor, loadStudentsByGender, loadStudentsByExamCenterName } from'@/api/getStudent.js'
+import { useUserStore } from '@/store/user'
 // 响应式数据
 const loading = ref(false)
 const showCreateDialog = ref(false)
@@ -682,7 +683,8 @@ const fetchAllStudents = async () => {
     const data = res.data.data
     studentList.value = Array.isArray(data.records) ? data.records : []
     total.value = data.total || 0
-    ElMessage.success(`查询完成，共找到 ${total.value} 条记录`)
+    const userStore=useUserStore()
+    ElMessage.success(`${userStore.role}查询完成，共找到 ${total.value} 条记录`)
     getStatistics()
   } catch (error) {
     console.error('查询全部学生失败:', error)

@@ -111,7 +111,7 @@
   import { useRouter } from 'vue-router'
   import { User, Lock } from '@element-plus/icons-vue';
   import { ElMessage } from 'element-plus';
-import { register } from '@/api/getLogin.js'; // 导入注册API函数
+import { register } from '@/api/getRegister.js'; // 导入注册API函数
 import { getMajors, getExamCenters } from '@/api/getRegister.js'
   import { onMounted } from 'vue'
 
@@ -202,11 +202,20 @@ onMounted(async () => {
       // 重置错误信息
       errorMsg.value = '';
       loading.value = true;
+      const submit_data={
+        name:registerForm.name,
+        idNumber:registerForm.idCard,
+        password:registerForm.password,
+        majorCode:registerForm.major,
+        examCenterName:registerForm.examInstitute,
+        gender:registerForm.gender,
+        birthDate:registerForm.birthDate,
+        phone:registerForm.phone,
+        address:registerForm.address
+      }
   
       // 调用注册API
-      const response = await register({
-        ...registerForm
-      });
+      const response = await register(submit_data);
   
       // 处理注册响应
       if (response.status === 200) {

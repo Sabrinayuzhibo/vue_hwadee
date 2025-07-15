@@ -8,19 +8,20 @@
             <el-icon><Setting /></el-icon>
             政策配置
           </el-button>
+
         </el-col>
         <el-col :span="6">
           <el-button type="success" @click="showApplyDialog = true">
             <el-icon><Plus /></el-icon>
-            免考申请
+            免考申请:
           </el-button>
         </el-col>
-        <el-col :span="6">
+        <!-- <el-col :span="6">
           <el-button type="warning" @click="showAuditDialog = true">
             <el-icon><Search /></el-icon>
             审核管理
           </el-button>
-        </el-col>
+        </el-col> -->
         <el-col :span="6">
           <el-button type="info" @click="exportExemptionList" :loading="exportLoading">
             <el-icon><Download /></el-icon>
@@ -42,20 +43,19 @@
         <el-form-item label="申请状态">
           <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
             <el-option label="待审核" value="pending" />
-            <el-option label="初审通过" value="first_approved" />
-            <el-option label="终审通过" value="final_approved" />
+            <el-option label="审核通过" value="approved" />
             <el-option label="已驳回" value="rejected" />
-          </el-select>
+         </el-select>
         </el-form-item>
-        <el-form-item label="申请时间">
+        <!-- <el-form-item label="申请时间">
           <el-date-picker
             v-model="searchForm.dateRange"
             type="daterange"
             range-separator="至"
-            start-placehold,r="开始日期"
+            start-placeholder="开始日期"
             end-placeholder="结束日期"
           />
-        </el-form-item>
+        </el-form-item> -->
         <el-form-item>
           <el-button type="primary" @click="searchExemptions">查询</el-button>
           <el-button @click="resetSearch">重置</el-button>
@@ -381,7 +381,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="课程名称" prop="courseName">
-          <el-input v-model="policyForm.courseName" disabled />
+          <el-input v-model="policyForm.courseName" />
         </el-form-item>
         <el-form-item label="免考条件" prop="exemptionCondition">
           <el-input 
@@ -391,38 +391,14 @@
             placeholder="请详细描述免考条件，如：全国计算机等级考试二级及以上证书"
           />
         </el-form-item>
-        <el-form-item label="适用范围" prop="scope">
-          <el-checkbox-group v-model="policyForm.scope">
-            <el-checkbox label="所有专业">所有专业</el-checkbox>
-            <el-checkbox label="理工类专业">理工类专业</el-checkbox>
-            <el-checkbox label="文史类专业">文史类专业</el-checkbox>
-            <el-checkbox label="艺术类专业">艺术类专业</el-checkbox>
-          </el-checkbox-group>
-        </el-form-item>
-        <el-form-item label="生效时间" prop="effectiveDate">
-          <el-date-picker
-            v-model="policyForm.effectiveDate"
-            type="date"
-            placeholder="选择生效时间"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
+        
         <el-form-item label="政策状态" prop="status">
           <el-radio-group v-model="policyForm.status">
             <el-radio label="active">启用</el-radio>
             <el-radio label="inactive">停用</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input 
-            v-model="policyForm.remark" 
-            type="textarea" 
-            :rows="2"
-            placeholder="政策说明或备注信息"
-          />
-        </el-form-item>
-      </el-form>
+             </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="cancelAddPolicy">取消</el-button>
@@ -439,42 +415,21 @@
             <el-col :span="16">
               <el-input v-model="applyForm.studentId" placeholder="请输入考籍号" clearable />
             </el-col>
-            <el-col :span="8">
-              <el-button type="primary" @click="searchStudent" :loading="searching">
-                <el-icon><Search /></el-icon>
-                查询考生
-              </el-button>
-            </el-col>
           </el-row>
         </el-form-item>
         <el-form-item label="考生姓名" prop="studentName">
           <el-input 
             v-model="applyForm.studentName" 
-            placeholder="请输入考生姓名" 
-            :disabled="autoFillFromSearch"
+            placeholder="请输入考生姓名"
             clearable 
           />
-          <div class="form-tip" v-if="autoFillFromSearch">
-            <el-icon><InfoFilled /></el-icon>
-            该信息已通过考籍号自动填入，如需修改请手动编辑
-          </div>
         </el-form-item>
         <el-form-item label="报考专业" prop="major">
           <el-input 
             v-model="applyForm.major" 
             placeholder="请输入报考专业" 
-            :disabled="autoFillFromSearch"
             clearable 
           />
-          <div class="form-tip" v-if="autoFillFromSearch">
-            <el-icon><InfoFilled /></el-icon>
-            该信息已通过考籍号自动填入，如需修改请手动编辑
-          </div>
-        </el-form-item>
-        <el-form-item>
-          <el-checkbox v-model="manualInput" @change="toggleManualInput">
-            手动输入考生信息（不通过考籍号查询）
-          </el-checkbox>
         </el-form-item>
         <el-form-item label="免考课程" prop="courseCode">
           <el-select v-model="applyForm.courseCode" placeholder="请选择课程" @change="onCourseChange">
@@ -697,7 +652,7 @@ const courseAnalysisData = ref([
   {
     courseCode: '004',
     courseName: '马克思主义基本原理',
-    totalApplications: 18,
+    totalApplications: 18, 
     approvedApplications: 16,
     approvalRate: 88.9,
     mainExemptionType: '其他学历课程',
@@ -853,12 +808,16 @@ const loadExemptionList = async () => {
       studentId: searchForm.studentId,
       dateRange: searchForm.dateRange
     })
-    exemptionList.value = response.data.records || []
-    total.value = response.data.total || 0
+
+    exemptionList.value= response.data.data.records || []
+
+    total.value = response.data.data.records?.length || 0
     updateStatistics()
   } catch (error) {
-    ElMessage.error('加载免考申请列表失败')
+    ElMessage.error('加载免考申请列表失败，使用模拟数据')
     console.error('Load exemption list error:', error)
+    // 如果API失败，使用模拟数据
+    loadMockData()
   } finally {
     loading.value = false
   }
@@ -879,8 +838,7 @@ const getExemptionTypeTag = (type) => {
 const getStatusType = (status) => {
   const types = {
     pending: 'warning',
-    first_approved: 'info',
-    final_approved: 'success',
+    approved: 'info',
     rejected: 'danger'
   }
   return types[status] || 'info'
@@ -890,8 +848,7 @@ const getStatusType = (status) => {
 const getStatusText = (status) => {
   const texts = {
     pending: '待审核',
-    first_approved: '初审通过',
-    final_approved: '终审通过',
+    approved: '审核通过',
     rejected: '已驳回'
   }
   return texts[status] || '未知'
@@ -909,24 +866,113 @@ const searchExemptions = async () => {
       studentId: searchForm.studentId,
       dateRange: searchForm.dateRange
     })
-    exemptionList.value = response.data.records || []
-    total.value = response.data.total || 0
+    
+    console.log('Search exemptions response:', response)
+
+    exemptionList.value = response.data.data.records || []
+    total.value = response.data.data.records?.length || 0
     currentPage.value = 1
     updateStatistics()
     ElMessage.success('搜索完成')
   } catch (error) {
-    ElMessage.error('搜索失败')
+    ElMessage.error('搜索失败，使用模拟数据')
     console.error('Search exemptions error:', error)
+    // 如果API失败，使用模拟数据
+    loadMockData()
   } finally {
     loading.value = false
   }
 }
 
+// 加载模拟数据（当API不可用时）
+const loadMockData = () => {
+  exemptionList.value = [
+    {
+      id: 1,
+      studentId: '2024001',
+      studentName: '张三',
+      major: '计算机科学与技术',
+      courseCode: '001',
+      courseName: '计算机应用基础',
+      exemptionType: '计算机等级考试',
+      applyDate: '2024-01-15',
+      status: 'pending',
+      auditor: '',
+      auditDate: '',
+      description: '持有全国计算机等级考试二级证书'
+    },
+    {
+      id: 2,
+      studentId: '2024002',
+      studentName: '李四',
+      major: '汉语言文学',
+      courseCode: '002',
+      courseName: '大学英语',
+      exemptionType: '英语等级考试',
+      applyDate: '2024-01-10',
+      status: 'approved',
+      auditor: '王审核',
+      auditDate: '2024-01-12',
+      description: '持有CET-4证书，成绩580分'
+    },
+    {
+      id: 3,
+      studentId: '2024003',
+      studentName: '王五',
+      major: '工商管理',
+      courseCode: '003',
+      courseName: '高等数学',
+      exemptionType: '其他学历课程',
+      applyDate: '2024-01-08',
+      status: 'rejected',
+      auditor: '李审核',
+      auditDate: '2024-01-11',
+      description: '已通过同层次高等数学课程'
+    },
+    {
+      id: 4,
+      studentId: '2024004',
+      studentName: '赵六',
+      major: '英语',
+      courseCode: '004',
+      courseName: '马克思主义基本原理',
+      exemptionType: '其他学历课程',
+      applyDate: '2024-01-05',
+      status: 'approved',
+      auditor: '陈审核',
+      auditDate: '2024-01-09',
+      description: '本科阶段已修读相关课程'
+    },
+    {
+      id: 5,
+      studentId: '2024005',
+      studentName: '孙七',
+      major: '机械工程',
+      courseCode: '001',
+      courseName: '计算机应用基础',
+      exemptionType: '职业资格证书',
+      applyDate: '2024-01-20',
+      status: 'pending',
+      auditor: '',
+      auditDate: '',
+      description: '持有信息处理技术员证书'
+    }
+  ]
+  total.value = exemptionList.value.length
+  updateStatistics()
+}
+
 // 重置搜索
 const resetSearch = () => {
   Object.keys(searchForm).forEach(key => {
-    searchForm[key] = ''
+    if (Array.isArray(searchForm[key])) {
+      searchForm[key] = []
+    } else {
+      searchForm[key] = ''
+    }
   })
+  // 重置搜索条件后重新加载数据
+  loadExemptionList()
 }
 
 // 查看详情
@@ -1227,6 +1273,7 @@ const searchStudent = async () => {
   }
   
   searching.value = true
+
   
   try {
     // 调用API查询学生信息
@@ -1329,14 +1376,14 @@ const submitExemption = async () => {
     // 重新加载列表
     await loadExemptionList()
     
-    // 重置表单
-    Object.keys(applyForm).forEach(key => {
-      if (Array.isArray(applyForm[key])) {
-        applyForm[key] = []
-      } else {
-        applyForm[key] = ''
-      }
-    })
+    // // 重置表单
+    // Object.keys(applyForm).forEach(key => {
+    //   if (Array.isArray(applyForm[key])) {
+    //     applyForm[key] = []
+    //   } else {
+    //     applyForm[key] = ''
+    //   }
+    // })
     autoFillFromSearch.value = false
     manualInput.value = false
     
@@ -1363,10 +1410,10 @@ const auditExemption = async (row) => {
       }
     }).then(async ({ value, action }) => {
       const auditData = {
-        id: row.id || row.studentId,
+        id:  row.studentId,
         status: action === 'confirm' ? 'approved' : 'rejected',
-        auditComment: value,
-        auditor: '当前用户' // 从用户状态获取
+        description: value,
+        studentName: row.studentName // 从用户状态获取
       }
       
       await auditExemptionAPI(auditData)
@@ -1434,18 +1481,16 @@ const savePolicy = async () => {
     
     // 创建新政策对象
     const newPolicy = {
-      id: Date.now(), // 临时ID，实际应该由后端生成
-      policyName: policyForm.policyName,
+      ruleId: Date.now(), // 临时ID，实际应该由后端生成
+      name: policyForm.policyName,
       courseCode: policyForm.courseCode,
       courseName: policyForm.courseName,
-      exemptionCondition: policyForm.exemptionCondition,
-      scope: policyForm.scope.join(', '),
-      effectiveDate: policyForm.effectiveDate,
-      status: policyForm.status,
-      remark: policyForm.remark,
-      createTime: new Date().toISOString().split('T')[0]
+      description: policyForm.exemptionCondition
     }
     
+    response=await createPolicyAPI(newPolicy)
+
+    newPolicy['status']="active" // 默认状态为激活
     // 添加到政策列表
     policyList.value.push(newPolicy)
     
@@ -1516,7 +1561,7 @@ const calculatePolicyStats = () => {
   
   // 计算通过率
   const approvedCount = exemptionList.value.filter(app => 
-    app.status === 'final_approved' || app.status === 'first_approved'
+    app.status === 'approved' || app.status === 'approved'
   ).length
   policyStats.value.approvalRate = exemptionList.value.length > 0 
     ? Math.round((approvedCount / exemptionList.value.length) * 100) 
@@ -1528,12 +1573,12 @@ const calculatePolicyStats = () => {
 const updateStatistics = () => {
   pendingCount.value = exemptionList.value.filter(item => item.status === 'pending').length
   approvedCount.value = exemptionList.value.filter(item => 
-    item.status === 'final_approved' || item.status === 'first_approved'
+    item.status.includes('approved') 
   ).length
   rejectedCount.value = exemptionList.value.filter(item => item.status === 'rejected').length
 }
-
 // 加载统计数据
+
 const loadStatistics = async () => {
   try {
     const response = await getExemptionStatsAPI()
@@ -1570,9 +1615,16 @@ const handleCurrentChange = (page) => {
 
 // 组件挂载时初始化数据
 onMounted(async () => {
-  await loadExemptionList()
-  await loadStatistics()
-  await loadPolicyData()
+  // 首先尝试加载真实数据
+  try {
+    await loadExemptionList()
+    await loadStatistics()
+    await loadPolicyData()
+  } catch (error) {
+    console.error('初始化数据加载失败:', error)
+    // 如果API都失败，加载模拟数据
+    loadMockData()
+  }
   calculatePolicyStats()
 })
 </script>

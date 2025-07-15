@@ -130,16 +130,14 @@
 				console.log(response)
 				const role=response.data.msg
 				console.log(role);
-				//  // 保存登录状态到本地存储
-				// localStorage.setItem('token', response.data.data.token) // 保存token
-				// localStorage.setItem('userInfo', JSON.stringify(response.data.data.user)) // 保存用户信息
-				// localStorage.setItem('menus', JSON.stringify(response.data.data.menus)) // 保存菜单数据
 
+		
 				// 延迟跳转，实际项目中需替换为路由器跳转
 				setTimeout(() => {
 					// 跳转到主页
 					router.push('/')
 					userStore.setRole(role) // 登录成功后
+					userStore.setName(loginForm.name) // 添加这行，保存姓名
 				}, 1000);
 			} else {
 				// API返回的错误处理

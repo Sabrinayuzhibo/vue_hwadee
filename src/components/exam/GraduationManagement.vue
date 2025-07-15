@@ -4,35 +4,63 @@
     <div class="operation-bar">
       <el-row :gutter="20">
     <el-col :span="6">
-      <el-button type="primary" @click="dialogVisible = true">
+      <el-button type="primary" @click="handleGraduateVerify">
         <el-icon><Plus /></el-icon>
-        毕业申请
+        毕业核验
       </el-button>
-  <!-- 毕业申请表单弹窗 -->
-  <el-dialog v-model="dialogVisible" title="毕业申请" width="500px" :close-on-click-modal="false">
+  <!-- 毕业核验表单弹窗 -->
+  <el-dialog v-model="dialogVisible" title="毕业核验" width="500px" :close-on-click-modal="false">
     <el-form :model="form" label-width="110px">
       <el-form-item label="毕业情况：">
+        <div v-if="form.msg !== ''" style="color: green;">
+          {{ form.msg }}
+        </div>
+        <div v-else style="color: red;">
+          未知状态
+        </div>
       </el-form-item>
       <el-form-item label="姓名：">
+        <span>{{ form.studentName }}</span>
       </el-form-item>
       <el-form-item label="考籍号：">
+        <span>{{ form.studentId }}</span>
       </el-form-item>
       <el-form-item label="身份证号：">
+        <span>{{ form.studentIdNumber }}</span>
       </el-form-item>
       <el-form-item label="性别：">
+        <span>{{ form.gender }}</span>
       </el-form-item>
       <el-form-item label="考试院：">
+        <span>{{ form.examCenterName }}</span>
       </el-form-item>
       <el-form-item label="专业：">
+        <span>{{ form.majorName }}</span>
       </el-form-item>
       <el-form-item label="总修课程数：">
+        <span>{{ form.numOfCourses || '无' }}</span>
       </el-form-item>
       <el-form-item label="总修学分数：">
+        <span>{{ form.numOfCredits || '无' }}</span>
       </el-form-item>
       <el-form-item label="均分：">
+        <span>{{ form.averageScores || '无' }}</span>
       </el-form-item>
       <el-form-item label="已修课程清单：">
-      </el-form-item>
+  <div v-if="form.coursesList.length > 0">
+    <el-table :data="form.coursesList" style="width: 100%">
+      <el-table-column 
+        prop="courseName" 
+        label="课程名称"
+        min-width="200"
+        :show-overflow-tooltip="true"
+      />
+    </el-table>
+  </div>
+  <div v-else>
+    暂无课程记录
+  </div>
+</el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog-footer">
@@ -76,25 +104,69 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Document, Download } from '@element-plus/icons-vue'
 import { getGraduationList } from '@/api/getGraduation'
+import { postGraduateVerify } from '@/api/getGraduation'
+import { useUserStore } from '@/store/user'
 
 // 弹窗显示控制
 const dialogVisible = ref(false)
 
-// 表单数据
+// 当前登录用户信息（假设有 userStore，实际按你的项目获取用户名）
+const userStore = useUserStore()
+
+// 毕业核验表单数据
 const form = reactive({
-  graduationStatus: '',
+  msg: '',
   studentName: '',
   studentId: '',
-  idNumber: '',
+  studentIdNumber: '',
   gender: '',
-  examInstitute: '',
-  major: '',
-  courseCount: '',
-  totalCredits: '',
-  averageScore: '',
-  courseList: ''
+  examCenterName: '',
+  majorId: '',
+  majorName: '',
+  numOfCourses: '',
+  numOfCredits: '',
+  averageScores: '',
+  coursesList: []
 })
-const formRef = ref()
+
+// 毕业核验按钮点击
+const handleGraduateVerify = async () => {
+  dialogVisible.value = true
+  // 获取当前登录用户姓名
+  const name = userStore.name
+  const role = userStore.role
+  console.log('当前用户角色:', role)
+  console.log('当前用户姓名:', name)
+  if (!name) {
+    ElMessage.error('未获取到当前用户姓名')
+    return
+  }
+  try {
+    const res = await postGraduateVerify(name)
+    if (res.data && res.data.data) {
+      const data = res.data.data
+      // 填充表单
+      form.msg = data.msg || ''
+      form.studentName = data.studentName || ''
+      form.studentId = data.studentId || ''
+      form.studentIdNumber = data.studentIdNumber || ''
+      form.gender = data.gender || ''
+      form.examCenterName = data.examCenterName || ''
+      form.majorId = data.majorId || ''
+      form.majorName = data.majorName || ''
+      form.numOfCourses = data.numOfCourses || ''
+      form.numOfCredits = data.numOfCredits || ''
+      form.averageScores = data.averageScores || ''
+      form.coursesList = data.coursesList?.map(courseName => ({
+        courseName: courseName,
+      })) || []
+    } else {
+      ElMessage.error(res.data?.msg || '未查到毕业信息')
+    }
+  } catch (e) {
+    ElMessage.error('毕业核验失败')
+  }
+}
 
 // 响应式数据
 const loading = ref(false)

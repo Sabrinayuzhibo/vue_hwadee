@@ -4,6 +4,14 @@ import request from '@/utils/request'
 
 /**
  * 获取免考申请列表
+ * 
+ * @param {Object} params - 查询参数
+ *  page: 页码
+ *  size: 每页数量
+ *  status: 申请状态
+ *  studentName: 学生姓名
+ *  studentId: 学号
+ *  dateRange: 申请日期范围
  */
 export const getExemptionListAPI =
     (params) => {
@@ -12,6 +20,16 @@ export const getExemptionListAPI =
 
 /**
  * 创建免考申请
+ *
+ * @param {Object} data - 申请信息
+ *  studentId: 学号
+ *  studentName: 学生姓名
+ *  major: applyForm.major,
+ *  courseCode: 课程代码,
+ *  courseName: 免考课程,
+ *  exemptionType: 免修类型,
+ *  description: 申请说明,
+ *  materials: 申请材料
  */
 export const createExemptionAPI =
     (data) => {
@@ -20,6 +38,7 @@ export const createExemptionAPI =
 
 /**
  * 获取免考申请详情
+
  */
 export const getExemptionDetailAPI =
     (id) => {
@@ -28,6 +47,13 @@ export const getExemptionDetailAPI =
 
 /**
  * 审核免考申请
+ *
+ *data(Object): {
+ * id: row.id || row.studentId,
+ * status: action === 'confirm' ? 'approved' : 'rejected',
+ * description: value,
+ * studentName: row.studentName // 从用户状态获取
+ * }
  */
 export const auditExemptionAPI =
     (data) => {
@@ -70,7 +96,7 @@ export const exportExemptionListAPI =
  */
 export const getStudentInfoAPI =
     (studentId) => {
-      return request({url: `/student/info/${studentId}`, method: 'get'})
+      return request({url: `/exemption/student/info/${studentId}`, method: 'get'})
     }
 
 /**
@@ -78,7 +104,8 @@ export const getStudentInfoAPI =
  */
 export const searchStudentAPI =
     (keyword) => {
-      return request({url: '/student/search', method: 'get', params: {keyword}})
+      return request(
+          {url: '/exemption/student/search', method: 'get', params: {keyword}})
     }
 
 // 课程相关接口
@@ -88,7 +115,7 @@ export const searchStudentAPI =
  */
 export const getAvailableCoursesAPI =
     () => {
-      return request({url: '/course/available', method: 'get'})
+      return request({url: '/exemption/course/available', method: 'get'})
     }
 
 /**
@@ -96,7 +123,8 @@ export const getAvailableCoursesAPI =
  */
 export const getCourseInfoAPI =
     (courseCode) => {
-      return request({url: `/course/info/${courseCode}`, method: 'get'})
+      return request(
+          {url: `/exemption/course/info/${courseCode}`, method: 'get'})
     }
 
 // 文件上传下载相关接口
@@ -110,7 +138,7 @@ export const uploadMaterialsAPI =
         url: '/exemption/upload',
         method: 'post',
         data: formData,
-        headers: {'Content-Type': 'multipart/form-data'}
+        headers: {'Content-Type': '/exemptionmultipart/form-data'}
       })
     }
 
@@ -142,7 +170,7 @@ export const getMaterialListAPI =
  */
 export const getPolicyListAPI =
     (params) => {
-      return request({url: '/policy/list', method: 'get', params})
+      return request({url: '/exemption/policy/list', method: 'get', params})
     }
 
 /**
@@ -150,7 +178,7 @@ export const getPolicyListAPI =
  */
 export const createPolicyAPI =
     (data) => {
-      return request({url: '/policy/create', method: 'post', data})
+      return request({url: '/exemption-rule/add', method: 'post', data})
     }
 
 /**
@@ -158,7 +186,7 @@ export const createPolicyAPI =
  */
 export const updatePolicyAPI =
     (id, data) => {
-      return request({url: `/policy/update/${id}`, method: 'put', data})
+      return request({url: `/exemption/policy/update/${id}`, method: 'put', data})
     }
 
 /**
@@ -166,7 +194,7 @@ export const updatePolicyAPI =
  */
 export const deletePolicyAPI =
     (id) => {
-      return request({url: `/policy/delete/${id}`, method: 'delete'})
+      return request({url: `/exemption/policy/delete/${id}`, method: 'delete'})
     }
 
 /**
@@ -175,7 +203,7 @@ export const deletePolicyAPI =
 export const togglePolicyStatusAPI =
     (id, status) => {
       return request(
-          {url: `/policy/toggle-status/${id}`, method: 'patch', data: {status}})
+          {url: `/exemption/policy/toggle-status/${id}`, method: 'patch', data: {status}})
     }
 
 // 统计相关接口
@@ -185,7 +213,7 @@ export const togglePolicyStatusAPI =
  */
 export const getPolicyStatsAPI =
     () => {
-      return request({url: '/policy/stats', method: 'get'})
+      return request({url: '/exemption/policy/stats', method: 'get'})
     }
 
 /**
@@ -193,8 +221,11 @@ export const getPolicyStatsAPI =
  */
 export const getPolicyUsageStatsAPI =
     (timeRange) => {
-      return request(
-          {url: '/policy/usage-stats', method: 'get', params: {timeRange}})
+      return request({
+        url: '/exemption/policy/usage-stats',
+        method: 'get',
+        params: {timeRange}
+      })
     }
 
 /**

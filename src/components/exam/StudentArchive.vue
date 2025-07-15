@@ -167,10 +167,10 @@
         <el-descriptions-item label="姓名">{{ currentDetailStudent?.name }}</el-descriptions-item>
         <el-descriptions-item label="身份证号">{{ currentDetailStudent?.idNumber }}</el-descriptions-item>
         <el-descriptions-item label="专业">{{ currentDetailStudent?.majorCode }}</el-descriptions-item>
-        <el-descriptions-item label="注册时间">{{ currentDetailStudent?.registerDate }}</el-descriptions-item>
+        <el-descriptions-item label="注册时间">{{ currentDetailStudent?.createTime }}</el-descriptions-item>
         <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(currentDetailStudent?.status)">
-            {{ getStatusText(currentDetailStudent?.status) }}
+          <el-tag :type="getStatusType(getStudentStatus(currentDetailStudent))">
+            {{ getStatusText(getStudentStatus(currentDetailStudent)) }}
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="联系电话">{{ currentDetailStudent?.phone }}</el-descriptions-item>
@@ -374,7 +374,7 @@ import {
 import { createStudentArchive, searchStudents as searchStudentsAPI, updateNonKeyStudentInfo, submitKeyInfoChange } from '@/api/getStudent.js'
 import ScoreManagement from './ScoreManagement.vue'
 import * as echarts from 'echarts'
-import { getStudentList } from '@/api/getStudent.js'
+import { getStudentList ,getStudentListNoPage} from '@/api/getStudent.js'
 import {loadStudentByIdCardNumber,loadStudentByStudentId,loadStudentByName} from '@/api/getStudent.js'
 import{ loadStudentsByMajor, loadStudentsByGender, loadStudentsByExamCenterName } from'@/api/getStudent.js'
 import { useUserStore } from '@/store/user'
@@ -956,7 +956,7 @@ let ageChart = null
 
 // 拉取统计数据
 const fetchStatistics = async () => {
-  const res = await getStudentList({})
+  const res = await getStudentListNoPage({})
   if (res.status === 200) {
     studentList.value = res.data.data
     await nextTick()
@@ -1074,6 +1074,13 @@ onMounted(() => {
 })
 
 const queryMode = ref('all') // 'all' 或 'search'
+
+const getStudentStatus = (student) => {
+  if (student.isDeleted) return 'cancelled'
+  if (student.frozened) return 'frozen'
+  if (student.activate) return 'normal'
+  return '未知'
+}
 
 </script>
 

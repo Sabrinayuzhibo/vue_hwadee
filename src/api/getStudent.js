@@ -18,7 +18,7 @@ import request from '@/utils/request.js'
  */
 export const createStudentArchive = (data) => {
 	return request({
-		url: '/student/createArchive',
+		url: '/register-student',
 		method: 'post',
 		data
 	})

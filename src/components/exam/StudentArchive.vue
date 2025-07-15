@@ -742,7 +742,13 @@ const createStudent = async () => {
     }
 
     // 调用API创建考籍档案
-    const response = await createStudentArchive(submitData)
+    const response = await createStudentArchive({
+      name: submitData.name,
+      idNumber: submitData.idCard,
+      password: "123456",
+      majorCode: "AC001",
+      examCenterName: "北京考试院"
+    })
 
     // 处理响应
     if (response.status === 200) {

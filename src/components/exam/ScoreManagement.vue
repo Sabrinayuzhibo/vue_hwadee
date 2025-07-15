@@ -5,21 +5,21 @@
       <div class="search-form">
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="考籍号">
+            <el-form-item label="学生姓名">
               <el-input 
-                v-model="searchForm.archiveNumber" 
-                placeholder="请输入考籍号"
+                v-model="searchForm.name" 
+                placeholder="请输入学生姓名"
                 clearable
-                @keyup.enter="handleSearch"
               />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="课程代码">
               <el-input 
-                v-model="searchForm.courseCode" 
-                placeholder="请输入课程代码"
+                v-model="searchForm.courseName" 
+                placeholder="请输入课程名字"
                 clearable
+                 @keyup.enter="handleSearch"
               />
             </el-form-item>
           </el-col>
@@ -64,126 +64,42 @@
       <el-table :data="scoreList" border stripe>
         <el-table-column prop="courseCode" label="课程代码" width="120" />
         <el-table-column prop="courseName" label="课程名称" width="200" />
-        <el-table-column prop="courseType" label="课程类型" width="100">
+        <el-table-column prop="courseScore" label="成绩" width="100">
           <template #default="{ row }">
-            <el-tag :type="getCourseTypeTag(row.courseType)">
-              {{ getCourseTypeText(row.courseType) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="examDate" label="考试时间" width="120" />
-        <el-table-column prop="score" label="成绩" width="80">
-          <template #default="{ row }">
-            <span :class="{ 'pass-score': row.score >= 60, 'fail-score': row.score < 60 }">
-              {{ row.score }}
+            <span :class="{ 'pass-score': row.courseScore >= 60, 'fail-score': row.courseScore < 60 }">
+              {{ row.courseScore }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getScoreStatusTag(row.status)">
-              {{ getScoreStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="录入时间" width="160" />
-        <el-table-column prop="updateTime" label="更新时间" width="160" />
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button 
-              type="primary" 
-              size="small" 
-              @click="viewScoreDetail(row)"
-            >
-              查看
-            </el-button>
-            <el-button 
-              type="warning" 
-              size="small" 
-              @click="editScore(row)"
-              v-if="hasPermission('score_edit')"
-            >
-              编辑
-            </el-button>
-          </template>
-        </el-table-column>
       </el-table>
-
-      <!-- 分页 -->
-      <div class="pagination-wrapper">
-        <el-pagination
-          v-model:current-page="pagination.currentPage"
-          v-model:page-size="pagination.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="pagination.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
     </el-card>
 
     <!-- 成绩补录对话框 -->
     <el-dialog 
       v-model="addScoreDialogVisible" 
       title="成绩补录" 
-      width="600px"
+      width="400px"
       :close-on-click-modal="false"
     >
       <el-form 
         ref="addScoreFormRef" 
         :model="addScoreForm" 
         :rules="addScoreRules" 
-        label-width="120px"
+        label-width="100px"
       >
-        <el-form-item label="考籍号" prop="archiveNumber">
-          <el-input v-model="addScoreForm.archiveNumber" placeholder="请输入考籍号" />
-        </el-form-item>
-        <el-form-item label="课程代码" prop="courseCode">
-          <el-input v-model="addScoreForm.courseCode" placeholder="请输入课程代码" />
+        <el-form-item label="学生姓名" prop="name">
+          <el-input v-model="addScoreForm.name" placeholder="请输入学生姓名" />
         </el-form-item>
         <el-form-item label="课程名称" prop="courseName">
           <el-input v-model="addScoreForm.courseName" placeholder="请输入课程名称" />
         </el-form-item>
-        <el-form-item label="课程类型" prop="courseType">
-          <el-select v-model="addScoreForm.courseType" placeholder="请选择课程类型">
-            <el-option label="理论课" value="theory" />
-            <el-option label="实践课" value="practice" />
-            <el-option label="毕业论文" value="thesis" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="考试时间" prop="examDate">
-          <el-date-picker
-            v-model="addScoreForm.examDate"
-            type="date"
-            placeholder="选择考试时间"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
-        <el-form-item label="成绩" prop="score">
-          <el-input-number 
-            v-model="addScoreForm.score" 
-            :min="0" 
-            :max="100" 
-            :precision="1"
-            placeholder="请输入成绩"
-          />
-        </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input 
-            v-model="addScoreForm.remark" 
-            type="textarea" 
-            :rows="3"
-            placeholder="请输入备注信息"
-          />
+        <el-form-item label="成绩" prop="courseScore">
+          <el-input-number v-model="addScoreForm.courseScore" :min="0" :max="100" :precision="2" placeholder="请输入成绩" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="addScoreDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitAddScore" :loading="addScoreLoading">
-          确认补录
-        </el-button>
+        <el-button type="primary" @click="submitAddScore" :loading="addScoreLoading">确认补录</el-button>
       </template>
     </el-dialog>
 
@@ -191,34 +107,23 @@
     <el-dialog 
       v-model="correctionDialogVisible" 
       title="成绩更正申请" 
-      width="600px"
-      :close-on-click-modal="false"
+      width="500px"
     >
       <el-form 
         ref="correctionFormRef" 
         :model="correctionForm" 
         :rules="correctionRules" 
-        label-width="120px"
+        label-width="100px"
       >
-        <el-form-item label="考籍号" prop="archiveNumber">
-          <el-input v-model="correctionForm.archiveNumber" placeholder="请输入考籍号" />
+        <el-form-item label="学生姓名" prop="name">
+          <el-input v-model="correctionForm.name" placeholder="请输入学生姓名" />
         </el-form-item>
-        <el-form-item label="课程代码" prop="courseCode">
-          <el-input v-model="correctionForm.courseCode" placeholder="请输入课程代码" />
+        <el-form-item label="课程名称" prop="courseName">
+          <el-input v-model="correctionForm.courseName" placeholder="请输入课程名称" />
         </el-form-item>
-        <el-form-item label="原成绩" prop="originalScore">
+        <el-form-item label="更正成绩" prop="score">
           <el-input-number 
-            v-model="correctionForm.originalScore" 
-            :min="0" 
-            :max="100" 
-            :precision="1"
-            placeholder="原成绩"
-            disabled
-          />
-        </el-form-item>
-        <el-form-item label="更正成绩" prop="correctedScore">
-          <el-input-number 
-            v-model="correctionForm.correctedScore" 
+            v-model="correctionForm.score" 
             :min="0" 
             :max="100" 
             :precision="1"
@@ -232,26 +137,6 @@
             :rows="3"
             placeholder="请详细说明更正原因"
           />
-        </el-form-item>
-        <el-form-item label="证明材料" prop="evidenceFiles">
-          <el-upload
-            ref="uploadRef"
-            :action="uploadUrl"
-            :headers="uploadHeaders"
-            :file-list="correctionForm.evidenceFiles"
-            :on-success="handleUploadSuccess"
-            :on-error="handleUploadError"
-            :before-upload="beforeUpload"
-            multiple
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-          >
-            <el-button type="primary">选择文件</el-button>
-            <template #tip>
-              <div class="el-upload__tip">
-                支持 PDF、Word、图片格式，单个文件不超过10MB
-              </div>
-            </template>
-          </el-upload>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -301,28 +186,30 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, Edit, Download } from '@element-plus/icons-vue'
 import { 
-  getStudentScores, 
+  getStudentCoursesByName, 
   addStudentScore, 
-  submitScoreCorrection 
+  submitScoreCorrection,
+  updateStudentCourse
 } from '@/api/getStudent.js'
 
 // 定义组件属性
 const props = defineProps({
-  archiveNumber: {
+  name: {
     type: String,
     default: ''
   }
 })
 
 // 定义组件事件
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'refresh'])
 
 // 响应式数据
 const searchForm = reactive({
-  archiveNumber: '',
-  courseCode: ''
+  name: '',
+  courseName: ''
 })
 
+const allCourses = ref([])
 const scoreList = ref([])
 const searchLoading = ref(false)
 const addScoreDialogVisible = ref(false)
@@ -340,32 +227,19 @@ const pagination = reactive({
 // 成绩补录表单
 const addScoreFormRef = ref()
 const addScoreForm = reactive({
-  archiveNumber: '',
-  courseCode: '',
-  courseName: '',
-  courseType: '',
-  examDate: '',
-  score: null,
-  remark: ''
+  name: '',         // 学生姓名
+  courseName: '',   // 课程名称
+  courseScore: null // 课程成绩
 })
 
 const addScoreRules = {
-  archiveNumber: [
-    { required: true, message: '请输入考籍号', trigger: 'blur' }
-  ],
-  courseCode: [
-    { required: true, message: '请输入课程代码', trigger: 'blur' }
+  name: [
+    { required: true, message: '请输入学生姓名', trigger: 'blur' }
   ],
   courseName: [
     { required: true, message: '请输入课程名称', trigger: 'blur' }
   ],
-  courseType: [
-    { required: true, message: '请选择课程类型', trigger: 'change' }
-  ],
-  examDate: [
-    { required: true, message: '请选择考试时间', trigger: 'change' }
-  ],
-  score: [
+  courseScore: [
     { required: true, message: '请输入成绩', trigger: 'blur' },
     { type: 'number', min: 0, max: 100, message: '成绩必须在0-100之间', trigger: 'blur' }
   ]
@@ -374,22 +248,19 @@ const addScoreRules = {
 // 成绩更正表单
 const correctionFormRef = ref()
 const correctionForm = reactive({
-  archiveNumber: '',
-  courseCode: '',
-  originalScore: null,
-  correctedScore: null,
-  correctionReason: '',
-  evidenceFiles: []
+  name: '',               // 学生姓名
+  courseName: '',         // 课程名称
+  score: null,   // 更正后的成绩
 })
 
 const correctionRules = {
-  archiveNumber: [
-    { required: true, message: '请输入考籍号', trigger: 'blur' }
+  name: [
+    { required: true, message: '请输入学生姓名', trigger: 'blur' }
   ],
-  courseCode: [
-    { required: true, message: '请输入课程代码', trigger: 'blur' }
+  courseName: [
+    { required: true, message: '请输入课程名称', trigger: 'blur' }
   ],
-  correctedScore: [
+  score: [
     { required: true, message: '请输入更正成绩', trigger: 'blur' },
     { type: 'number', min: 0, max: 100, message: '成绩必须在0-100之间', trigger: 'blur' }
   ],
@@ -423,19 +294,42 @@ const hasPermission = (permission) => {
 
 // 搜索成绩
 const handleSearch = async () => {
-  if (!searchForm.archiveNumber) {
-    ElMessage.warning('请输入考籍号进行查询')
+  if (!searchForm.name) {
+    ElMessage.warning('请输入学生姓名进行查询')
     return
   }
-
+  
+  // 每次查询都重新请求数据，确保数据最新
   searchLoading.value = true
   try {
-    const response = await getStudentScores(searchForm.archiveNumber)
-    scoreList.value = response.data || []
-    pagination.total = scoreList.value.length
-    ElMessage.success('查询成功')
+    const res = await getStudentCoursesByName({ name: searchForm.name })
+    if (res.data && Array.isArray(res.data.data)) {
+      allCourses.value = res.data.data
+      // 根据课程名筛选
+      if (!searchForm.courseName) {
+        scoreList.value = allCourses.value
+      } else {
+        scoreList.value = allCourses.value.filter(item =>
+          item.courseName && item.courseName.includes(searchForm.courseName)
+        )
+      }
+      pagination.total = scoreList.value.length
+      if (scoreList.value.length > 0) {
+        ElMessage.success('查询成功')
+      } else {
+        ElMessage.warning('未找到匹配的课程')
+      }
+    } else {
+      allCourses.value = []
+      scoreList.value = []
+      pagination.total = 0
+      ElMessage.error(res.data?.msg || '未查询到成绩')
+    }
   } catch (error) {
     console.error('查询成绩失败:', error)
+    allCourses.value = []
+    scoreList.value = []
+    pagination.total = 0
     ElMessage.error('查询失败，请重试')
   } finally {
     searchLoading.value = false
@@ -443,18 +337,17 @@ const handleSearch = async () => {
 }
 
 // 监听考籍号变化，自动填充搜索表单
-watch(() => props.archiveNumber, (newValue) => {
+watch(() => props.name, (newValue) => {
   if (newValue) {
-    searchForm.archiveNumber = newValue
-    // 自动搜索该学生的成绩
-    handleSearch()
+    searchForm.name = newValue
+    allCourses.value = [] // 切换学生时清空
   }
 }, { immediate: true })
 
 // 重置搜索
 const resetSearch = () => {
   Object.assign(searchForm, {
-    archiveNumber: '',
+    name: '',
     courseCode: ''
   })
   scoreList.value = []
@@ -465,35 +358,37 @@ const resetSearch = () => {
 const showAddScoreDialog = () => {
   addScoreDialogVisible.value = true
   Object.assign(addScoreForm, {
-    archiveNumber: props.archiveNumber || '',
-    courseCode: '',
+    name: props.name || '',
     courseName: '',
-    courseType: '',
-    examDate: '',
-    score: null,
-    remark: ''
+    courseScore: null
   })
 }
 
-// 提交成绩补录
+// 提交补录表单
 const submitAddScore = async () => {
   if (!addScoreFormRef.value) return
-
   try {
     await addScoreFormRef.value.validate()
     addScoreLoading.value = true
-
-    const response = await addStudentScore(addScoreForm)
+    // 只传这三个字段
+    console.log(addScoreForm)
+    const response = await updateStudentCourse({
+      studentName: addScoreForm.name,
+      courseName: addScoreForm.courseName,
+      score: addScoreForm.courseScore
+    })
     ElMessage.success('成绩补录成功')
     addScoreDialogVisible.value = false
+    // 触发刷新事件，通知父组件重新查询
+    emit('refresh')
     
-    // 重新查询成绩列表
-    if (searchForm.archiveNumber) {
+    // 同时刷新当前组件的成绩列表
+    if (searchForm.name) {
+      // 如果当前有查询条件，则重新查询
       await handleSearch()
     }
   } catch (error) {
-    console.error('成绩补录失败:', error)
-    ElMessage.error('成绩补录失败，请重试')
+    ElMessage.error('成绩补录失败')
   } finally {
     addScoreLoading.value = false
   }
@@ -503,12 +398,9 @@ const submitAddScore = async () => {
 const showCorrectionDialog = () => {
   correctionDialogVisible.value = true
   Object.assign(correctionForm, {
-    archiveNumber: props.archiveNumber || '',
-    courseCode: '',
-    originalScore: null,
-    correctedScore: null,
-    correctionReason: '',
-    evidenceFiles: []
+    name: props.name || '', // 确保姓名也被填充
+    courseName: '',
+    score: null
   })
 }
 
@@ -520,9 +412,23 @@ const submitCorrection = async () => {
     await correctionFormRef.value.validate()
     correctionLoading.value = true
 
-    const response = await submitScoreCorrection(correctionForm)
+    // 使用新的字段结构提交
+    const response = await updateStudentCourse({
+      studentName: correctionForm.name,
+      courseName: correctionForm.courseName,
+      score: correctionForm.score
+    })
+    
     ElMessage.success('成绩更正申请提交成功')
     correctionDialogVisible.value = false
+    
+    // 触发刷新事件，通知父组件重新查询
+    emit('refresh')
+    
+    // 如果当前有查询条件，刷新列表
+    if (searchForm.name) {
+      await handleSearch()
+    }
   } catch (error) {
     console.error('提交更正申请失败:', error)
     ElMessage.error('提交失败，请重试')

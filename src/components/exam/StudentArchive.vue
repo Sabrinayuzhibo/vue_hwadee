@@ -330,19 +330,11 @@
             <el-table :data="currentScoreStudent?.courses || []" border size="small" style="margin-top: 10px;">
               <el-table-column prop="courseCode" label="课程代码" width="100" />
               <el-table-column prop="courseName" label="课程名称" width="200" />
-              <el-table-column prop="examDate" label="考试时间" width="120" />
-              <el-table-column prop="score" label="成绩" width="80">
+              <el-table-column prop="courseScore" label="成绩" width="80">
                 <template #default="{ row }">
-                  <span :class="{ 'pass-score': row.score >= 60, 'fail-score': row.score < 60 }">
-                    {{ row.score }}
+                  <span :class="{ 'pass-score': row.courseScore >= 60, 'fail-score': row.courseScore < 60 }">
+                    {{ row.courseScore }}
                   </span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="status" label="状态" width="80">
-                <template #default="{ row }">
-                  <el-tag :type="getScoreStatusTag(row.status)" size="small">
-                    {{ getScoreStatusText(row.status) }}
-                  </el-tag>
                 </template>
               </el-table-column>
             </el-table>
@@ -353,8 +345,9 @@
       <!-- 成绩管理组件 -->
       <ScoreManagement 
         v-if="showScoreDialog" 
-        :archive-number="currentScoreStudent?.studentId"
+        :name="currentScoreStudent?.name"
         @close="showScoreDialog = false"
+        @refresh="refreshStudentScores"
       />
     </el-dialog>
 
@@ -380,6 +373,7 @@ import{ loadStudentsByMajor, loadStudentsByGender, loadStudentsByExamCenterName 
 import { useUserStore } from '@/store/user'
 import { toRaw } from 'vue'
 import { fetchAllMajors } from '@/api/getCommon.js'
+import { getStudentCoursesByName } from '@/api/getStudent.js'
 // 响应式数据
 const loading = ref(false)
 const showCreateDialog = ref(false)
@@ -896,12 +890,38 @@ const handleSubmitKeyInfoChange = async () => {
 
 
 // 查看成绩
-const viewScores = (row) => {
-  currentScoreStudent.value = row
-  showScoreDialog.value = true
-  // 如果是从详情对话框调用的，关闭详情对话框
-  if (showStudentDetailDialog.value) {
-    showStudentDetailDialog.value = false
+const viewScores = async (row) => {
+  try {
+    const res = await getStudentCoursesByName({ name: row.name })
+    // 假设返回格式为 { code: 100000, data: [...] }
+    if (res.data && Array.isArray(res.data.data)) {
+      // 把课程列表挂到当前学生对象上
+      row.courses = res.data.data
+      currentScoreStudent.value = row
+      showScoreDialog.value = true
+      if (showStudentDetailDialog.value) {
+        showStudentDetailDialog.value = false
+      }
+    } else {
+      ElMessage.error(res.data?.msg || '未查询到成绩')
+    }
+  } catch (e) {
+    ElMessage.error('查询成绩失败')
+  }
+}
+
+// 刷新学生成绩
+const refreshStudentScores = async () => {
+  if (currentScoreStudent.value) {
+    try {
+      const res = await getStudentCoursesByName({ name: currentScoreStudent.value.name })
+      if (res.data && Array.isArray(res.data.data)) {
+        currentScoreStudent.value.courses = res.data.data
+        ElMessage.success('成绩数据已更新')
+      }
+    } catch (e) {
+      ElMessage.error('刷新成绩失败')
+    }
   }
 }
 

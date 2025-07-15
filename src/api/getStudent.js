@@ -406,19 +406,31 @@ export const getStudentList = (params) => {
 	  params
 	})
   }
-  // ================== 获取考生列表 ==================
+ 
 /**
- * 分页查询所有学生信息（不支持模糊匹配）
- * 接口 URL: GET /loadAll
- * 请求参数:
- *   - pageNum: 当前页码（从 1 开始）
- *   - pageSize: 每页条数（可选）
- * 返回值: 分页后的学生信息列表
+ * 根据学生姓名查询其所修课程信息
+ * @param {string} name 学生姓名
+ * @returns Promise
  */
-export const getStudentListNoPage = (params) => {
-	return request({
-	  url: '/loadAll',
-	  method: 'get',
-	  params
-	})
-  }
+export const getStudentCoursesByName = (name) => {
+  return request({
+    url: '/student-info/student-courses',
+    method: 'post',
+    data: name
+  })
+}
+ 
+/**
+ * 更新或新增学生课程成绩
+ * @param {Object} data - { studentName: string, courseName: string, score: number }
+ * @returns Promise
+ */
+export const updateStudentCourse = (data) => {
+  return request({
+    url: '/student-info/update-course',
+    method: 'post',
+    data
+  })
+}
+ 
+
